@@ -1,0 +1,24 @@
+{
+    "*": {
+        "*": [
+            {
+                "name": "Java",
+                "description": "Java 8+ (e.g., OpenJDK 11) required for Saxon-HE transformations",
+                "url": "https://adoptium.net",
+                "platforms": ["linux", "osx", "windows"]
+            },
+            {
+                "name": "Saxon-HE",
+                "description": "Saxon-HE 12.9 for XSLT processing",
+                "url": "https://www.saxonica.com/download/java.xml",
+                "platforms": ["linux", "osx", "windows"]
+            },
+            {
+                "name": "xmlresolver",
+                "description": "xmlresolver 6.0.6 for resolving XML resources",
+                "url": "https://github.com/xmlresolver/xmlresolver",
+                "platforms": ["linux", "osx", "windows"]
+            }
+        ]
+    }
+}

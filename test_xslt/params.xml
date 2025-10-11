@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<params>
+    <param name="pTestParam" value="TestValue"/>
+    <param name="pTestParam2" value="TestValue2"/>
+    <param name="extraParam" value="ExtraValue"/>
+</params>

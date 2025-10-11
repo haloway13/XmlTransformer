@@ -1,0 +1,6 @@
+{
+    "cmd": ["xml_transformer_build"],
+    "working_dir": "$file_path",
+    "selector": "text.xml",
+    "target": "xml_transformer_build"
+}

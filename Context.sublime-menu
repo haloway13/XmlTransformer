@@ -1,0 +1,12 @@
+[
+    {
+        "id": "xml_transformer",
+        "caption": "XmlTransformer",
+        "children": [
+            {
+                "caption": "Run XmlTransformer",
+                "command": "xml_transformer_build"
+            }
+        ]
+    }
+]

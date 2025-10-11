@@ -1,0 +1,54 @@
+# XmlTransformer TODO List for Initial Release (v1.0.0)
+
+## Critical (Required for Release)
+1. Update xmlresolver version from 6.0.6 to 6.0.19 in:
+   - setup_XmlTransformer_windows.bat
+   - setup_XmlTransformer_ubuntu.sh
+   - setup_XmlTransformer_macos.sh
+   - XmlTransformer_build.py
+   - README.md
+   - dependencies.json
+   - CHANGELOG.md (update version reference)
+   Reason: Latest version (6.0.19 as of July 2025) includes bug fixes and API improvements.
+2. Fix README.md:
+   - Complete "## License" section to read: "## License\nThis package is licensed under the MIT License. See [LICENSE](LICENSE) for details."
+   - Add "Additional Files" section for dependencies.json, CHANGELOG.md.
+3. Update CHANGELOG.md date to 2025-10-08 (current date) and mention xmlresolver 6.0.19.
+4. Fix combineWin.py to correctly handle .html files (e.g., test-output.html) as text by adding '.html' to text_extensions.
+
+## Recommended (Enhance Release Quality)
+5. Add screenshots to README.md:
+   - Quick panel for XSL selection.
+   - Parameter input panel.
+   - Transformation output (e.g., test-output.html).
+6. Add download verification in setup scripts:
+   - Check file existence/size after curl/wget/Invoke-WebRequest.
+   - Optionally add checksum validation for JARs.
+7. Remove unused self.default_xsl in XmlTransformer_build.py or integrate it (e.g., preselect if exists).
+8. Add unit tests for key functions (e.g., get_xsl_output_method, parse_xml_param_file, validate_xml_file).
+9. Make output panel name configurable in XmlTransformer_exec.py (not hardcoded "exec").
+
+## Optional (Future Improvements)
+10. Add comprehensive parameter sanitization function to handle special characters (e.g., ;, ", ') to prevent command injection.
+11. Support Sublime Text 4 Python 3.8 features (e.g., f-strings) if dropping Sublime Text 3 support.
+12. Add cleanup for failed transformation outputs (e.g., delete partial files).
+13. Add configuration option for output directory (currently uses input file directory).
+14. Include test cases for edge cases (e.g., invalid params, large XML files).
+
+## Release Tasks
+15. Push to GitHub:
+   - Create public repo: https://github.com/thall/XmlTransformer
+   - Add description: "Sublime Text package for XSLT transformations using Saxon-HE"
+   - Add topics: sublime-text, xslt, xml
+   - Tag v1.0.0
+16. Submit to Package Control:
+   - Fork https://github.com/packagecontrol/channel
+   - Add entry to repository/Packages.sublime-package.json
+   - Submit PR with testing confirmation
+17. Test on all platforms (Windows, Linux, macOS) to ensure compatibility.
+
+## Completed Tasks
+18. Sanitized parameter values in run_transformation to escape spaces using .format() for Python 3.3 compatibility.
+19. Added input validation for XML/XSL files in XmlTransformer_build.py (validate_xml_file method).
+20. Uncommented settings save in XmlTransformer_build.py (on_param_file_name_entered, on_param_file_selected) to persist last_param_filename.
+21. Enhanced error detection in XmlTransformer_exec.py to include "Warning" and "Fatal Error" patterns.

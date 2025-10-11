@@ -1,0 +1,6 @@
+[
+    {
+        "caption": "XmlTransformer: Build",
+        "command": "xml_transformer_build"
+    }
+]
