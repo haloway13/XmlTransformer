@@ -1,0 +1,3 @@
+test_xslt/ export-ignore
+*.sublime-project export-ignore
+*.sublime-workspace export-ignore
