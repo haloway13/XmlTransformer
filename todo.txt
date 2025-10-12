@@ -30,8 +30,8 @@ All critical tasks completed.
    - Add topics: sublime-text, xslt, xml [Completed]
    - Tag v1.0.0 [Completed]
 13. Submit to Package Control:
-   - Fork https://github.com/packagecontrol/channel [Completed]
-   - Add entry to repository/Packages.sublime-package.json [Completed]
+   - Fork https://github.com/wbond/package_control_channel [Completed]
+   - Add entry to repository/x.json [Completed]
    - Submit PR with testing confirmation [Completed]
 14. Test on all platforms (Windows, Linux, macOS) to ensure compatibility. [Completed]
 
@@ -51,4 +51,6 @@ All critical tasks completed.
 27. Fixed non-fast-forward error by pushing local master to remote main.
 28. Forked packagecontrol/channel, added XmlTransformer entry with author handle haloway13, committed.
 29. Created XmlTransformerV6.zip and verified v1.0.0 tag for Package Control distribution.
-30. Submitted PR to Package Control with verified ZIP and completed release tasks.
+30. Submitted PR to packagecontrol/channel, but redirected to wbond/package_control_channel due to library vs. package distinction.
+31. Forked wbond/package_control_channel, added XmlTransformer entry to repository/x.json, and resubmitted PR to correct channel.
+32. Added .gitattributes to exclude test_xslt/, *.sublime-project, *.sublime-workspace from package ZIP.
