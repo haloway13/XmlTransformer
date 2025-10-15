@@ -54,3 +54,7 @@ All critical tasks completed.
 30. Submitted PR to packagecontrol/channel, but redirected to wbond/package_control_channel due to library vs. package distinction.
 31. Forked wbond/package_control_channel, added XmlTransformer entry to repository/x.json, and resubmitted PR to correct channel.
 32. Added .gitattributes to exclude test_xslt/, *.sublime-project, *.sublime-workspace from package ZIP.
+33. Confirmed PR submission to wbond/package_control_channel with no conflicts.
+34. Simplified x.json entry to use details and tags, removed Context.sublime-menu, added debug setting to XmlTransformer_build.py per PR feedback.
+35. Added Run without parameters option to XmlTransformer_build.py for improved usability.
+36. Further simplified x.json by removing redundant name, description, and author fields per PR feedback.
