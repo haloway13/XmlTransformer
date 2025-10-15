@@ -230,7 +230,7 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
                 self.params = []
             if self.params:
                 self.window.show_quick_panel(
-                    ["Enter parameters manually", "Select variables XML file"],
+                    ["Run without parameters", "Enter parameters manually", "Select variables XML file"],
                     self.on_param_choice
                 )
             else:
@@ -243,6 +243,8 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             sublime.status_message("Parameter choice cancelled")
             return
         if index == 0:
+            self.run_transformation(None)  # Run without parameters
+        elif index == 1:
             self.current_param_index = 0
             self.param_values = {}
             self.prompt_for_param()
