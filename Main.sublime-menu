@@ -1,0 +1,28 @@
+[
+    {
+        "caption": "Preferences",
+        "id": "preferences",
+        "children": [
+            {
+                "caption": "Package Settings",
+                "id": "package-settings",
+                "children": [
+                    {
+                        "caption": "XmlTransformer",
+                        "id": "xmltransformer",
+                        "children": [
+                            {
+                                "caption": "Settings",
+                                "command": "edit_settings",
+                                "args": {
+                                    "base_file": "${packages}/XmlTransformer/XmlTransformer.sublime-settings",
+                                    "default": "{\n\t\"last_param_filename\": \"params.xml\",\n\t\"suppress_warnings\": true,\n\t\"debug\": false\n}\n"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]
