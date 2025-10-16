@@ -1,0 +1,15 @@
+XmlTransformer Installed
+
+To complete setup, you need to install Java 8+ (e.g., OpenJDK 11), Saxon-HE 12.9, and xmlresolver 6.0.6. These are not included in the package.
+
+Please copy and run the platform-specific setup script from the package:
+- macOS: Copy ~/.config/sublime-text/Packages/XmlTransformer/setup_XmlTransformer_macos.sh to ~, then run `chmod +x ~/setup_XmlTransformer_macos.sh; ~/setup_XmlTransformer_macos.sh`.
+- Linux: Copy ~/.config/sublime-text/Packages/XmlTransformer/setup_XmlTransformer_ubuntu.sh to ~, then run `chmod +x ~/setup_XmlTransformer_ubuntu.sh; ~/setup_XmlTransformer_ubuntu.sh`.
+- Windows: Copy ~/.config/sublime-text/Packages/XmlTransformer/setup_XmlTransformer_windows.bat to a folder and double-click to run.
+
+Alternatively, download scripts from:
+- macOS: https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_macos.sh
+- Linux: https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_ubuntu.sh
+- Windows: https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_windows.bat
+
+See the Dependencies section in README.md for details: https://github.com/haloway13/XmlTransformer#dependencies
