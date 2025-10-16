@@ -232,12 +232,23 @@ For verification, use the included test files:
       ```
 ## License" with "This package is licensed under the MIT License. See LICENSE for details.
 
-## Dependencies and Their Licenses
+## Dependencies
+XmlTransformer requires:
+- Java 8+ (e.g., OpenJDK 11, available at https://adoptium.net).
+- Saxon-HE 12.9 (https://www.saxonica.com/download/java.xml).
+- xmlresolver 6.0.6 (https://github.com/xmlresolver/xmlresolver).
 
-This package relies on the following external dependencies, which are installed separately via the setup scripts. Please review their licenses for compliance:
+After installing via Package Control, copy and run the platform-specific setup script:
+- macOS: `cp ~/.config/sublime-text/Packages/XmlTransformer/setup_XmlTransformer_macos.sh ~; chmod +x ~/setup_XmlTransformer_macos.sh; ~/setup_XmlTransformer_macos.sh`
+- Linux: `cp ~/.config/sublime-text/Packages/XmlTransformer/setup_XmlTransformer_ubuntu.sh ~; chmod +x ~/setup_XmlTransformer_ubuntu.sh; ~/setup_XmlTransformer_ubuntu.sh`
+- Windows: Copy ~/.config/sublime-text/Packages/XmlTransformer/setup_XmlTransformer_windows.bat to a folder and double-click to run.
 
-- **Saxon-HE 12.9**: Licensed under the Mozilla Public License 2.0 (MPL 2.0). See [full text](https://www.mozilla.org/en-US/MPL/2.0/) or the [Saxonica license page](https://www.saxonica.com/license/MPL-2.0.txt).
-- **xmlresolver 6.0.6**: Licensed under the Apache License 2.0. See [full text](https://www.apache.org/licenses/LICENSE-2.0) or the [project GitHub](https://github.com/xmlresolver/xmlresolver/blob/main/LICENSE).
-- **Java (e.g., OpenJDK 11)**: Typically under the GNU General Public License v2 with Classpath Exception (GPLv2+CE), depending on the distribution. Check your installed version with `java --version`.
+Alternatively, download scripts from:
+- macOS: https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_macos.sh
+- Linux: https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_ubuntu.sh
+- Windows: https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_windows.bat
 
-These dependencies are not included in this package and must be obtained from their official sources.
+Place JARs in:
+- macOS: ~/Library/Saxon
+- Linux: /usr/local/lib/saxon
+- Windows: C:\Program Files\Saxon
