@@ -1,4 +1,4 @@
-# XmlTransformer TODO List for Initial Release (v1.0.0)
+# XmlTransformer TODO List for Initial Release (v1.0.1)
 
 ## Critical (Required for Release)
 All critical tasks completed.
@@ -21,14 +21,14 @@ All critical tasks completed.
 8. Add cleanup for failed transformation outputs (e.g., delete partial files).
 9. Add configuration option for output directory (currently uses input file directory).
 10. Include test cases for edge cases (e.g., invalid params, large XML files).
-11. Update xmlresolver to 6.0.19 for latest bug fixes (skipped for v1.0.0).
+11. Update xmlresolver to 6.0.19 for latest bug fixes (skipped for v1.0.1).
 
 ## Release Tasks
 12. Push to GitHub:
    - Create public repo: https://github.com/haloway13/XmlTransformer [Completed]
    - Add description: "Sublime Text package for XSLT transformations using Saxon-HE" [Completed]
    - Add topics: sublime-text, xslt, xml [Completed]
-   - Tag v1.0.0 [Completed]
+   - Tag v1.0.1 [Completed]
 13. Submit to Package Control:
    - Fork https://github.com/wbond/package_control_channel [Completed]
    - Add entry to repository/x.json [Completed]
@@ -58,3 +58,6 @@ All critical tasks completed.
 34. Simplified x.json entry to use details and tags, removed Context.sublime-menu, added debug setting to XmlTransformer_build.py per PR feedback.
 35. Added Run without parameters option to XmlTransformer_build.py for improved usability.
 36. Further simplified x.json by removing redundant name, description, and author fields per PR feedback.
+37. Removed dependencies.json, as it incorrectly listed non-Python dependencies, and updated README.md with setup instructions.
+38. Moved install.txt to messages/install.txt and added Main.sublime-menu for settings access.
+39. Tagged v1.0.1 to reflect updates (debug fixes, parameter option, menu additions).
