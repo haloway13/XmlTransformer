@@ -1,4 +1,5 @@
 {
     "last_param_filename": "params.xml",
-    "suppress_warnings": true
+    "suppress_warnings": true,
+    "debug": false
 }
