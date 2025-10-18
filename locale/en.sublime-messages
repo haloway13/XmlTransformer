@@ -1,0 +1,22 @@
+{
+    "navigate_xsl": "Navigate to and select an .xsl file for the XSLT transformation. Use directories to browse, Escape to cancel.",
+    "param_choice_cancelled": "Parameter choice cancelled",
+    "select_param_file": "Select an XML parameter file (format: <param name='...' value='...' />) or navigate directories. Escape to cancel.",
+    "param_file_cancelled": "Param file selection cancelled",
+    "java_missing": "Java is not available. Please install it and restart Sublime Text.",
+    "jars_missing": "JARs are not available. Please install them and restart Sublime Text.",
+    "no_xml_file": "No active XML file open or file not saved. Please save the file.",
+    "invalid_dir": "Invalid directory: {0}",
+    "no_files_in_dir": "No directories or XSL files found in: {0}",
+    "invalid_xsl_path": "Invalid or missing XSL file path: {0}",
+    "invalid_param_dir": "Invalid directory: {0}",
+    "no_param_files": "No directories or XML files found in: {0}",
+    "invalid_param_file": "Invalid or missing param file: {0}",
+    "param_parse_failed": "Failed to parse {0}: {1}",
+    "invalid_xml_xsl": "Invalid XML/XSL file: {0}\nError: {1}",
+    "validation_error": "Unexpected error validating {0}: {1}",
+    "params_saved": "Parameters saved to {0}",
+    "missing_params_warning": "Warning: Missing parameters in {0}: {1}. Continuing transformation.",
+    "run_transformation": "XmlTransformer: Run Transformation",
+    "install_message": "XmlTransformer Installed\n\nTo complete setup, you need to install Java 8+ (e.g., OpenJDK 11), Saxon-HE 12.9, and xmlresolver 6.0.6. These are not included in the package.\n\nCopy and run the platform-specific setup script from the package:\n- macOS: `cp ~/.config/sublime-text/Packages/XmlTransformer/setup_XmlTransformer_macos.sh ~; chmod +x ~/setup_XmlTransformer_macos.sh; ~/setup_XmlTransformer_macos.sh`\n- Linux: `cp ~/.config/sublime-text/Packages/XmlTransformer/setup_XmlTransformer_ubuntu.sh ~; chmod +x ~/setup_XmlTransformer_ubuntu.sh; ~/setup_XmlTransformer_ubuntu.sh`\n- Windows: Copy ~/.config/sublime-text/Packages/XmlTransformer/setup_XmlTransformer_windows.bat to a folder and double-click to run.\n\nAlternatively, download scripts from:\n- macOS: https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_macos.sh\n- Linux: https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_ubuntu.sh\n- Windows: https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_windows.bat\n\nSee the Dependencies section in README.md for details: https://github.com/haloway13/XmlTransformer#dependencies"
+}
