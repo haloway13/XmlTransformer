@@ -1,0 +1,22 @@
+{
+    "navigate_xsl": "Navega y selecciona un archivo .xsl para la transformación XSLT. Usa directorios para navegar, Esc para cancelar.",
+    "param_choice_cancelled": "Selección de parámetros cancelada",
+    "select_param_file": "Selecciona un archivo XML de parámetros (formato: <param name='...' value='...' />) o navega directorios. Esc para cancelar.",
+    "param_file_cancelled": "Selección de archivo de parámetros cancelada",
+    "java_missing": "Java no está disponible. Instálalo y reinicia Sublime Text.",
+    "jars_missing": "Los JARs no están disponibles. Instálalos y reinicia Sublime Text.",
+    "no_xml_file": "No hay un archivo XML abierto o no se ha guardado. Guarda el archivo.",
+    "invalid_dir": "Directorio inválido: {0}",
+    "no_files_in_dir": "No se encontraron directorios ni archivos XSL en: {0}",
+    "invalid_xsl_path": "Ruta de archivo XSL inválida o faltante: {0}",
+    "invalid_param_dir": "Directorio inválido: {0}",
+    "no_param_files": "No se encontraron directorios ni archivos XML en: {0}",
+    "invalid_param_file": "Archivo de parámetros inválido o faltante: {0}",
+    "param_parse_failed": "Error al analizar {0}: {1}",
+    "invalid_xml_xsl": "Archivo XML/XSL inválido: {0}\nError: {1}",
+    "validation_error": "Error inesperado al validar {0}: {1}",
+    "params_saved": "Parámetros guardados en {0}",
+    "missing_params_warning": "Advertencia: Faltan parámetros en {0}: {1}. Continuando con la transformación.",
+    "run_transformation": "XmlTransformer: Ejecutar Transformación",
+    "install_message": "XmlTransformer Instalado\n\nPara completar la configuración, necesitas instalar Java 8+ (por ejemplo, OpenJDK 11), Saxon-HE 12.9 y xmlresolver 6.0.6. Estos no están incluidos en el paquete.\n\nCopia y ejecuta el script de configuración específico para tu plataforma desde el paquete:\n- macOS: `cp ~/.config/sublime-text/Packages/XmlTransformer/setup_XmlTransformer_macos.sh ~; chmod +x ~/setup_XmlTransformer_macos.sh; ~/setup_XmlTransformer_macos.sh`\n- Linux: `cp ~/.config/sublime-text/Packages/XmlTransformer/setup_XmlTransformer_ubuntu.sh ~; chmod +x ~/setup_XmlTransformer_ubuntu.sh; ~/setup_XmlTransformer_ubuntu.sh`\n- Windows: Copia ~/.config/sublime-text/Packages/XmlTransformer/setup_XmlTransformer_windows.bat a una carpeta y haz doble clic para ejecutarlo.\n\nAlternativamente, descarga los scripts desde:\n- macOS: https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_macos.sh\n- Linux: https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_ubuntu.sh\n- Windows: https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_windows.bat\n\nConsulta la sección de Dependencias en README.md para más detalles: https://github.com/haloway13/XmlTransformer#dependencies"
+}
