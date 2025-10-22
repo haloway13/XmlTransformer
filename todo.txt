@@ -36,7 +36,6 @@ All critical tasks completed.
 14. Test on all platforms (Windows, Linux, macOS) to ensure compatibility. [Completed]
 
 ## Completed Tasks
-15. Fixed README.md: Removed "", completed License section, added Additional Files section.
 16. Updated CHANGELOG.md date to 2025-10-10 and documented features.
 17. Fixed combineWin.py to handle .html files as text by adding '.html' to text_extensions.
 18. Sanitized parameter values in run_transformation to escape spaces using .format() for Python 3.3 compatibility.
