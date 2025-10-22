@@ -13,12 +13,14 @@ def is_debug():
     return settings.get("debug", False)
 
 def get_message(key, *args):
-    lang = sublime.locale().split('-')[0]  # e.g., "en" or "es"
+    # Fallback to English for Sublime Text 3 compatibility (no sublime.locale())
+    lang = "en"  # Default to English; extend for ST4 with sublime.locale().split('-')[0]
     try:
-        messages = sublime.load_resource(f"Packages/XmlTransformer/locale/{lang}.sublime-messages")
+        messages_path = "Packages/XmlTransformer/locale/{0}.sublime-messages".format(lang)
+        messages = sublime.load_resource(messages_path)
         return json.loads(messages)[key].format(*args)
     except:
-        # Fallback to English
+        # Fallback to English if lang file missing
         messages = sublime.load_resource("Packages/XmlTransformer/locale/en.sublime-messages")
         return json.loads(messages)[key].format(*args)
 
