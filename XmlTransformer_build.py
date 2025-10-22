@@ -5,25 +5,36 @@ import subprocess
 import platform
 import xml.etree.ElementTree as ET
 import time
+import json
+
+settings = sublime.load_settings("XmlTransformer.sublime-settings")
+
+def is_debug():
+    return settings.get("debug", False)
+
+def get_message(key, *args):
+    lang = sublime.locale().split('-')[0]  # e.g., "en" or "es"
+    try:
+        messages = sublime.load_resource(f"Packages/XmlTransformer/locale/{lang}.sublime-messages")
+        return json.loads(messages)[key].format(*args)
+    except:
+        # Fallback to English
+        messages = sublime.load_resource("Packages/XmlTransformer/locale/en.sublime-messages")
+        return json.loads(messages)[key].format(*args)
 
 # Global flags for environment readiness
 java_available = True
 jars_available = True
-
-def is_debug(): 
-    return settings.get("debug", False)
 
 def plugin_loaded():
     global java_available
     global jars_available
     if is_debug():
         print("DEBUG: XmlTransformer_build.py loaded at:", time.time())
-    # Load and print settings
-    settings = sublime.load_settings("XmlTransformer.sublime-settings")
     if is_debug():
         print("DEBUG: XmlTransformer settings:", {
-        "last_param_filename": settings.get("last_param_filename", "params.xml"),
-        "suppress_warnings": settings.get("suppress_warnings", True)
+            "last_param_filename": settings.get("last_param_filename", "params.xml"),
+            "suppress_warnings": settings.get("suppress_warnings", True)
         })
     system = sublime.platform()
     is_windows = system == "windows"
@@ -33,7 +44,6 @@ def plugin_loaded():
         java_bin = "java"  # Windows typically has java in PATH
     elif is_macos:
         jar_path = os.path.expanduser("~/Library/Saxon")
-        # Try Apple Silicon path first, then Intel
         possible_java_paths = [
             "/opt/homebrew/opt/openjdk@11/bin/java",  # Apple Silicon
             "/usr/local/opt/openjdk@11/bin/java"      # Intel
@@ -48,7 +58,6 @@ def plugin_loaded():
     else:  # Linux
         jar_path = "/usr/local/lib/saxon"
         java_bin = "java"
-    # Check Java availability
     try:
         creation_flags = 0
         if sublime.platform() == "windows":
@@ -64,19 +73,18 @@ def plugin_loaded():
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         if is_debug():
             print("DEBUG: Java not found at:", time.time(), "Error:", str(e))
-        java_install_cmd = "brew install openjdk@11" if is_macos else "sudo apt install openjdk-11-jre" if system == "Linux" else "download from adoptium.net"
-        platform_name = "macOS" if is_macos else "Linux" if system == "Linux" else "Windows"
-        msg = "Java not found. Install Java 8+ (e.g., %s on %s)" % (java_install_cmd, platform_name)
+        java_install_cmd = "brew install openjdk@11" if is_macos else "sudo apt install openjdk-11-jre" if system == "linux" else "download from adoptium.net"
+        platform_name = "macOS" if is_macos else "Linux" if system == "linux" else "Windows"
+        msg = get_message("java_missing", java_install_cmd, platform_name)
         if is_debug():
             print("DEBUG: " + msg)
         java_available = False
-    # Check JAR availability
     required_jars = ["Saxon-HE-12.9.jar", "xmlresolver-6.0.6.jar", "xmlresolver-6.0.6-data.jar"]
     if not all(os.path.exists(os.path.join(jar_path, jar)) for jar in required_jars):
         if is_debug():
             print("DEBUG: Missing JARs in", jar_path, "at:", time.time())
-        setup_cmd = "setup_XmlTransformer_macos.sh" if is_macos else "setup_XmlTransformer_ubuntu.sh" if system == "Linux" else "setup_XmlTransformer_windows.bat"
-        msg = "Missing JARs in %s. Run %s or install manually from https://www.saxonica.com and https://github.com/xmlresolver/xmlresolver." % (jar_path, setup_cmd)
+        setup_cmd = "setup_XmlTransformer_macos.sh" if is_macos else "setup_XmlTransformer_ubuntu.sh" if system == "linux" else "setup_XmlTransformer_windows.bat"
+        msg = get_message("jars_missing", jar_path, setup_cmd)
         if is_debug():
             print("DEBUG: " + msg)
         global jars_available
@@ -86,25 +94,15 @@ def plugin_loaded():
 
 class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
     def run(self, **kwargs):
-        """
-        Executes the XML build command for the active window.
-        Initializes platform-specific settings and triggers the file selection panel.
-        Args:
-            **kwargs: Optional keyword arguments (currently unused).
-        """
         if is_debug():
             print("DEBUG: XmlTransformerBuildCommand run() called at:", time.time())
             print("DEBUG: Current window ID:", self.window.id())
-
-        # Check environment readiness set during plugin_loaded
         if not java_available:
-            sublime.error_message("Java is not available. Please install it and restart Sublime Text.")
+            sublime.error_message(get_message("java_missing"))
             return
         if not jars_available:
-            sublime.error_message("JARs are not available. Please install them and restart Sublime Text.")
+            sublime.error_message(get_message("jars_missing"))
             return
-
-        # Get the active view and validate it contains a saved XML file
         if is_debug():
             print("DEBUG: Before active_view at:", time.time())
         view = self.window.active_view()
@@ -113,10 +111,8 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         if not view or view.file_name() is None:
             if is_debug():
                 print("DEBUG: No active view or file not saved at:", time.time())
-            sublime.error_message("No active XML file open or file not saved. Please save the file.")
+            sublime.error_message(get_message("no_xml_file"))
             return
-
-        # Set file paths for the transformation
         self.xml_path = view.file_name()
         self.working_dir = os.path.dirname(self.xml_path) if os.path.sep in self.xml_path else "."
         self.default_xsl = os.path.splitext(self.xml_path)[0] + '.xsl'
@@ -125,30 +121,17 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         self.show_combined_panel(self.working_dir)
 
     def show_combined_panel(self, current_dir):
-        """
-        Displays a quick panel with directories and XSL files for selection.
-        Optimizes directory scanning and limits items to improve performance.
-        Args:
-            current_dir (str): The directory to scan for XSL files and subdirectories.
-        """
-        sublime.status_message("Navigate to and select an .xsl file for the XSLT transformation. Use directories to browse, Escape to cancel.")
-
+        sublime.status_message(get_message("navigate_xsl"))
         if is_debug():
             print("DEBUG: Starting show_combined_panel at:", time.time())
-
-        # Validate the directory exists
         if not os.path.isdir(current_dir):
             if is_debug():
                 print("DEBUG: Invalid directory check at:", time.time())
-            sublime.error_message("Invalid directory: " + current_dir)
+            sublime.error_message(get_message("invalid_dir", current_dir))
             return
-
-        # Resolve the real path of the directory
         self.current_dir = os.path.realpath(current_dir)
         if is_debug():
             print("DEBUG: Directory resolved at:", time.time())
-
-        # Build the panel items list, filtering out hidden directories and limiting name length
         items = ["[Parent Directory]" if self.current_dir != os.path.abspath(os.path.sep) else "[Root Directory]"]
         dirs = sorted([d + os.path.sep for d in os.listdir(current_dir) if os.path.isdir(os.path.join(current_dir, d)) and not d.startswith('.') and len(d) < 100])
         xsl_files = sorted([f for f in os.listdir(current_dir) if f.endswith('.xsl') and len(f) < 100])
@@ -156,15 +139,11 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             print("DEBUG: Directory scan completed at:", time.time())
         items.extend(dirs)
         items.extend(xsl_files)
-
-        # Handle case where no valid items are found
         if not dirs and not xsl_files:
             if is_debug():
                 print("DEBUG: No files found at:", time.time())
-            sublime.error_message("No directories or XSL files found in: " + self.current_dir)
+            sublime.error_message(get_message("no_files_in_dir", self.current_dir))
             return
-
-        # Store items and files for later use
         self.items = items
         self.xsl_files = xsl_files
         self.window.show_quick_panel(
@@ -176,13 +155,12 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         if index == -1:
             if is_debug():
                 print("DEBUG: Selection cancelled, exiting")
-            sublime.status_message("Selection cancelled")
+            sublime.status_message(get_message("param_choice_cancelled"))
             return
         selected_item = self.items[index]
         self.system = sublime.platform()
         self.is_windows = self.system == "windows"
         self.is_macos = self.system == "osx"
-        # Set java_bin for macOS to try Apple Silicon and Intel paths
         if self.is_macos:
             possible_java_paths = [
                 "/opt/homebrew/opt/openjdk@11/bin/java",  # Apple Silicon
@@ -214,9 +192,8 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             if not os.path.exists(self.xsl_path):
                 if is_debug():
                     print("DEBUG: Invalid XSL path:", self.xsl_path)
-                sublime.error_message("Invalid or missing XSL file path: " + self.xsl_path)
+                sublime.error_message(get_message("invalid_xsl_path", self.xsl_path))
                 return
-            # Scan XSL for parameters
             try:
                 tree = ET.parse(self.xsl_path)
                 root = tree.getroot()
@@ -240,10 +217,10 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         if index == -1:
             if is_debug():
                 print("DEBUG: Parameter choice cancelled, exiting")
-            sublime.status_message("Parameter choice cancelled")
+            sublime.status_message(get_message("param_choice_cancelled"))
             return
         if index == 0:
-            self.run_transformation(None)  # Run without parameters
+            self.run_transformation(None)
         elif index == 1:
             self.current_param_index = 0
             self.param_values = {}
@@ -255,7 +232,7 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         if self.current_param_index >= len(self.params):
             last_filename = settings.get("last_param_filename", "params.xml")
             self.window.show_input_panel(
-                "Enter name for variables XML file (in %s)" % self.working_dir,
+                get_message("enter_param_file", self.working_dir),
                 last_filename,
                 self.on_param_file_name_entered,
                 None,
@@ -264,13 +241,12 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             return
         param_name = self.params[self.current_param_index]
         self.window.show_input_panel(
-            "Enter value for parameter '%s'" % param_name,
+            get_message("enter_param_value", param_name),
             "",
             lambda value: self.on_param_value_entered(param_name, value),
             None,
             None
         )
-        return
 
     def on_param_file_name_entered(self, file_name):
         if is_debug():
@@ -287,7 +263,7 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             tree.write(param_file, encoding='utf-8', xml_declaration=True)
             if is_debug():
                 print("DEBUG: Saved parameters to:", param_file)
-            sublime.status_message("Parameters saved to %s" % file_name)
+            sublime.status_message(get_message("params_saved", file_name))
             settings.set("last_param_filename", file_name)
             sublime.save_settings("XmlTransformer.sublime-settings")
             param_values = self.parse_xml_param_file(param_file)
@@ -299,29 +275,27 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         except Exception as e:
             if is_debug():
                 print("DEBUG: Failed to save param file:", str(e))
-            sublime.error_message("Failed to save %s: %s" % (file_name, str(e)))
+            sublime.error_message(get_message("param_parse_failed", file_name, str(e)))
 
     def show_param_file_panel(self, current_dir):
         if not os.path.isdir(current_dir):
             if is_debug():
                 print("DEBUG: Invalid directory:", current_dir)
-            sublime.error_message("Invalid directory: " + current_dir)
+            sublime.error_message(get_message("invalid_param_dir", current_dir))
             return
-        
-        sublime.status_message("Select an XML parameter file (format: <param name='...' value='...' />) or navigate directories. Escape to cancel.")
-
+        sublime.status_message(get_message("select_param_file"))
         self.current_dir = os.path.realpath(current_dir)
         if is_debug():
             print("DEBUG: Showing param file panel for:", self.current_dir)
         items = ["[Parent Directory]" if self.current_dir != os.path.abspath(os.path.sep) else "[Root Directory]"]
-        dirs = sorted([d + os.path.sep for d in os.listdir(self.current_dir) if os.path.isdir(os.path.join(self.current_dir, d)) and not d.startswith('.')])
-        param_files = sorted([f for f in os.listdir(self.current_dir) if f.endswith('.xml')])
+        dirs = sorted([d + os.path.sep for d in os.listdir(current_dir) if os.path.isdir(os.path.join(current_dir, d)) and not d.startswith('.')])
+        param_files = sorted([f for f in os.listdir(current_dir) if f.endswith('.xml')])
         items.extend(dirs)
         items.extend(param_files)
         if not dirs and not param_files:
             if is_debug():
                 print("DEBUG: No directories or XML files found in:", self.current_dir)
-            sublime.error_message("No directories or XML files found in: " + self.current_dir)
+            sublime.error_message(get_message("no_param_files", self.current_dir))
             return
         self.items = items
         self.param_files = param_files
@@ -336,7 +310,7 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         if index == -1:
             if is_debug():
                 print("DEBUG: Param file selection cancelled, exiting")
-            sublime.status_message("Param file selection cancelled")
+            sublime.status_message(get_message("param_file_cancelled"))
             return
         selected_item = self.items[index]
         if selected_item == "[Parent Directory]" and self.current_dir != os.path.abspath(os.path.sep):
@@ -354,14 +328,14 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             if not os.path.exists(param_file):
                 if is_debug():
                     print("DEBUG: Invalid param file:", param_file)
-                sublime.error_message("Invalid or missing param file: " + param_file)
+                sublime.error_message(get_message("invalid_param_file", param_file))
                 return
             param_values = self.parse_xml_param_file(param_file)
             if param_values is None:
                 return
             missing_params = [p for p in self.params if p not in param_values]
             if missing_params:
-                warning = "Warning: Missing parameters in %s: %s. Continuing transformation." % (selected_item, ", ".join(missing_params))
+                warning = get_message("missing_params_warning", selected_item, ", ".join(missing_params))
                 if is_debug():
                     print("DEBUG:", warning)
                 sublime.status_message(warning)
@@ -376,7 +350,6 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             param_values = {}
             tree = ET.parse(param_file)
             root = tree.getroot()
-            # No namespace needed for this simple structure
             for param in root.findall('.//param'):
                 name = param.get('name')
                 value = param.get('value', '')
@@ -388,14 +361,10 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         except Exception as e:
             if is_debug():
                 print("DEBUG: Failed to parse param file:", str(e))
-            sublime.error_message("Failed to parse %s: %s" % (param_file, str(e)))
+            sublime.error_message(get_message("param_parse_failed", param_file, str(e)))
             return None
 
     def validate_xml_file(self, file_path):
-        """
-        Validates that the given XML/XSL file is well-formed using ElementTree.
-        Returns True if valid, False otherwise, with an error message.
-        """
         try:
             ET.parse(file_path)
             if is_debug():
@@ -404,12 +373,12 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         except ET.ParseError as e:
             if is_debug():
                 print("DEBUG: Invalid XML/XSL in %s: %s" % (file_path, str(e)))
-            sublime.error_message("Invalid XML/XSL file: %s\nError: %s" % (file_path, str(e)))
+            sublime.error_message(get_message("invalid_xml_xsl", file_path, str(e)))
             return False
         except Exception as e:
             if is_debug():
                 print("DEBUG: Unexpected error validating %s: %s" % (file_path, str(e)))
-            sublime.error_message("Unexpected error validating %s: %s" % (file_path, str(e)))
+            sublime.error_message(get_message("validation_error", file_path, str(e)))
             return False
 
     def get_xsl_output_method(self, xsl_path):
@@ -430,12 +399,10 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             else:
                 if is_debug():
                     print("DEBUG: No <xsl:output> element found, checking content")
-            # Fallback: Inspect XSLT content for HTML or text indicators
             if root.find('.//html', ns) is not None or root.find('.//xsl:element[@name="html"]', ns) is not None:
                 if is_debug():
                     print("DEBUG: Detected HTML content in XSLT, using html")
                 return 'html'
-            # Check for text-like output (e.g., <xsl:value-of> with separators)
             text_templates = root.findall('.//xsl:value-of', ns) + root.findall('.//xsl:text', ns)
             if text_templates and not root.findall('.//*', ns):
                 if is_debug():
@@ -447,7 +414,7 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         except Exception as e:
             if is_debug():
                 print("DEBUG: Failed to parse XSLT for output method:", str(e))
-            return 'xml'  # Fallback to xml on error
+            return 'xml'
 
     def run_transformation(self, param_file):
         if not self.validate_xml_file(self.xml_path) or not self.validate_xml_file(self.xsl_path):
@@ -485,7 +452,7 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         })
 
     def pretty_print_xml(self, elem, level=0):
-        indent = "    "  # 4 spaces for indentation
+        indent = "    "
         i = "\n" + level * indent
         if len(elem):
             if not elem.text or not elem.text.strip():
