@@ -7,10 +7,11 @@ import xml.etree.ElementTree as ET
 import time
 import json
 
-settings = sublime.load_settings("XmlTransformer.sublime-settings")
+def get_settings():
+    return sublime.load_settings("XmlTransformer.sublime-settings")
 
 def is_debug():
-    return settings.get("debug", False)
+    return get_settings().get("debug", False)
 
 def get_message(key, *args):
     # Fallback to English for Sublime Text 3 compatibility (no sublime.locale())
@@ -35,8 +36,8 @@ def plugin_loaded():
         print("DEBUG: XmlTransformer_build.py loaded at:", time.time())
     if is_debug():
         print("DEBUG: XmlTransformer settings:", {
-            "last_param_filename": settings.get("last_param_filename", "params.xml"),
-            "suppress_warnings": settings.get("suppress_warnings", True)
+            "last_param_filename": get_settings().get("last_param_filename", "params.xml"),
+            "suppress_warnings": get_settings().get("suppress_warnings", True)
         })
     system = sublime.platform()
     is_windows = system == "windows"
@@ -232,7 +233,7 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
 
     def prompt_for_param(self):
         if self.current_param_index >= len(self.params):
-            last_filename = settings.get("last_param_filename", "params.xml")
+            last_filename = get_settings().get("last_param_filename", "params.xml")
             self.window.show_input_panel(
                 get_message("enter_param_file", self.working_dir),
                 last_filename,
@@ -266,7 +267,7 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             if is_debug():
                 print("DEBUG: Saved parameters to:", param_file)
             sublime.status_message(get_message("params_saved", file_name))
-            settings.set("last_param_filename", file_name)
+            get_settings().set("last_param_filename", file_name)
             sublime.save_settings("XmlTransformer.sublime-settings")
             param_values = self.parse_xml_param_file(param_file)
             if param_values is None:
@@ -341,7 +342,7 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
                 if is_debug():
                     print("DEBUG:", warning)
                 sublime.status_message(warning)
-            settings.set("last_param_filename", selected_item)
+            get_settings().set("last_param_filename", selected_item)
             sublime.save_settings("XmlTransformer.sublime-settings")
             if is_debug():
                 print("DEBUG: Exiting on_param_file_selected")
@@ -421,7 +422,7 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
     def run_transformation(self, param_file):
         if not self.validate_xml_file(self.xml_path) or not self.validate_xml_file(self.xsl_path):
             return
-        suppress_warnings = settings.get("suppress_warnings", True)
+        suppress_warnings = get_settings().get("suppress_warnings", True)
         if is_debug():
             print("DEBUG: suppress_warnings setting:", suppress_warnings)
         output_method = self.get_xsl_output_method(self.xsl_path)
