@@ -65,7 +65,7 @@ if %ERRORLEVEL% NEQ 0 (
 ) else (
     echo Installing %JAVA_PACKAGE% via winget...
     winget install --id EclipseAdoptium.Temurin.17.JRE --source winget --accept-package-agreements --accept-source-agreements
-    if %ERRORLEVEL% NEQ 0 (
+    if !ERRORLEVEL! NEQ 0 (
         echo Failed to install Java via winget. Please download manually from: https://adoptium.net
     ) else (
         for /f "tokens=*" %%i in ('java -version 2^>^&1 ^| findstr /i "version"') do echo Installed Java: %%i
@@ -134,7 +134,7 @@ if !DO_INSTALL_JARS! == 1 (
         "};" ^
         "if ($failed) { exit 1 } else { exit 0 }"
 
-    if %ERRORLEVEL% NEQ 0 (
+    if !ERRORLEVEL! NEQ 0 (
         echo.
         echo [ERROR] One or more JAR downloads failed or produced empty files.
         echo Please check your internet connection or download manually from:
