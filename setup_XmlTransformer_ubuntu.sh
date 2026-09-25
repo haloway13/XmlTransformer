@@ -2,9 +2,9 @@
 set -e
 
 # Versions to install
-JAVA_PACKAGE="openjdk-11-jre"
-SAXON_VERSION="12.9"
-XMLRESOLVER_VERSION="6.0.6"
+JAVA_PACKAGE="default-jre"
+SAXON_VERSION="12.10"
+XMLRESOLVER_VERSION="6.0.23"
 SAXON_DIR="/usr/local/lib/saxon"
 
 # Function to prompt user for yes/no
@@ -23,7 +23,7 @@ prompt_user() {
 echo "XmlTransformer Setup Script for Linux"
 echo "---------------------------------"
 echo "This script will install:"
-echo "- Java: $JAVA_PACKAGE"
+echo "- Java: $JAVA_PACKAGE (Java 17 or higher)"
 echo "- Saxon-HE: $SAXON_VERSION"
 echo "- xmlresolver: $XMLRESOLVER_VERSION (including data)"
 echo "Target directory for JARs: $SAXON_DIR"

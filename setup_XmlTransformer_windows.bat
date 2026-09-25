@@ -2,15 +2,15 @@
 setlocal EnableDelayedExpansion
 
 :: Versions to install
-set JAVA_PACKAGE=openjdk-11-jre
-set SAXON_VERSION=12.9
-set XMLRESOLVER_VERSION=6.0.6
+set JAVA_PACKAGE=Temurin-17-JRE
+set SAXON_VERSION=12.10
+set XMLRESOLVER_VERSION=6.0.23
 set SAXON_DIR=%ProgramFiles%\Saxon
 
 echo XmlTransformer Setup Script for Windows
 echo ---------------------------------
 echo This script will install:
-echo - Java: %JAVA_PACKAGE%
+echo - Java: %JAVA_PACKAGE% (Java 17 or higher)
 echo - Saxon-HE: %SAXON_VERSION%
 echo - xmlresolver: %XMLRESOLVER_VERSION% (including data)
 echo Target directory for JARs: %SAXON_DIR%
@@ -29,7 +29,7 @@ if %ERRORLEVEL% == 0 (
     set /p INSTALL_JAVA=Java is already installed. Skip installing %JAVA_PACKAGE%? [Y/n]:
     if /i "!INSTALL_JAVA!"=="n" (
         echo Installing %JAVA_PACKAGE%...
-        winget install --id AdoptOpenJDK.OpenJDK.11 --source winget
+        winget install --id EclipseAdoptium.Temurin.17.JRE --source winget
         if %ERRORLEVEL% NEQ 0 (
             echo Failed to install Java. Download manually from https://adoptium.net.
             pause
@@ -45,7 +45,7 @@ if %ERRORLEVEL% == 0 (
         echo Warning: Java is required for XmlTransformer. Download from https://adoptium.net.
     ) else (
         echo Installing %JAVA_PACKAGE%...
-        winget install --id AdoptOpenJDK.OpenJDK.11 --source winget
+        winget install --id EclipseAdoptium.Temurin.17.JRE --source winget
         if %ERRORLEVEL% NEQ 0 (
             echo Failed to install Java. Download manually from https://adoptium.net.
             pause

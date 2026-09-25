@@ -1,15 +1,15 @@
 #!/bin/bash
 
 # Versions to install
-JAVA_PACKAGE="openjdk@11"
-SAXON_VERSION="12.9"
-XMLRESOLVER_VERSION="6.0.6"
+JAVA_PACKAGE="openjdk@17"
+SAXON_VERSION="12.10"
+XMLRESOLVER_VERSION="6.0.23"
 SAXON_DIR="$HOME/Library/Saxon"
 
 echo "XmlTransformer Setup Script for macOS"
 echo "---------------------------------"
 echo "This script will install:"
-echo "- Java: $JAVA_PACKAGE"
+echo "- Java: $JAVA_PACKAGE (Java 17 or higher)"
 echo "- Saxon-HE: $SAXON_VERSION"
 echo "- xmlresolver: $XMLRESOLVER_VERSION (including data)"
 echo "Target directory for JARs: $SAXON_DIR"
@@ -36,6 +36,20 @@ if ! command -v brew &> /dev/null; then
     fi
 fi
 
+# Helper function to configure brew java path
+configure_java_path() {
+    BREW_PREFIX=$(brew --prefix "$JAVA_PACKAGE" 2>/dev/null || brew --prefix)
+    if [ -d "$BREW_PREFIX/bin" ]; then
+        if ! grep -q "$BREW_PREFIX/bin" ~/.zshrc 2>/dev/null; then
+            echo "export PATH=\"$BREW_PREFIX/bin:\$PATH\"" >> ~/.zshrc
+        fi
+        export PATH="$BREW_PREFIX/bin:$PATH"
+    fi
+    if [ -d "$BREW_PREFIX/libexec/openjdk.jdk" ]; then
+        sudo ln -sfn "$BREW_PREFIX/libexec/openjdk.jdk" /Library/Java/JavaVirtualMachines/openjdk.jdk 2>/dev/null || true
+    fi
+}
+
 # Check and install Java
 echo ""
 echo "Checking for Java ($JAVA_PACKAGE)..."
@@ -50,8 +64,7 @@ if command -v java &> /dev/null; then
             echo "Failed to install Java. Please install manually with 'brew install $JAVA_PACKAGE'."
             exit 1
         fi
-        echo 'export PATH="/usr/local/opt/openjdk@11/bin:$PATH"' >> ~/.zshrc
-        source ~/.zshrc
+        configure_java_path
         echo "Installed Java: $(java -version 2>&1 | grep -i version)"
     else
         echo "Skipping Java installation."
@@ -67,8 +80,7 @@ else
             echo "Failed to install Java. Please install manually with 'brew install $JAVA_PACKAGE'."
             exit 1
         fi
-        echo 'export PATH="/usr/local/opt/openjdk@11/bin:$PATH"' >> ~/.zshrc
-        source ~/.zshrc
+        configure_java_path
         echo "Installed Java: $(java -version 2>&1 | grep -i version)"
     fi
 fi

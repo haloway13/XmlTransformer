@@ -1,6 +1,6 @@
 # XmlTransformer Package
 
-A Sublime Text package for performing XSLT transformations on XML files using Saxon-HE 12.9 and xmlresolver 6.0.6. Supports Linux, Windows, and macOS with a file browser-like interface for selecting XSL files and parameter files.
+A Sublime Text package for performing XSLT transformations on XML files using Saxon-HE (12.x / 13.x) and xmlresolver (6.x). Supports Linux, Windows, and macOS with a file browser-like interface for selecting XSL files and parameter files.
 
 ## Features
 
@@ -11,24 +11,25 @@ A Sublime Text package for performing XSLT transformations on XML files using Sa
 - Remembers the last used parameter filename for suggestions.
 - Transforms XML files into HTML output (<xml_file>-output.html).
 - No output generated if selection is canceled (Escape key).
-- Uses Saxon-HE 12.9 with -warnings:silent for efficiency.
+- Uses Saxon-HE with -warnings:silent for efficiency.
+- Dynamic JAR discovery: Automatically detects and utilizes installed Saxon-HE and xmlresolver JAR versions.
 - Debug logging to console and error handling via an output panel (xml_transformer_errors).
-- Platform-specific dependency checks for Java and JARs during plugin load.
+- Platform-specific dependency checks for Java (supporting Java 17 and 21 LTS) and JARs during plugin load.
 
 ## Requirements
 
 - Sublime Text: Version 3 or 4.
-- Java: 8+ (recommended: openjdk-11-jre or equivalent).
-- Saxon-HE: Version 12.9.
-- xmlresolver: Version 6.0.6 (including data).
+- Java: 8+ (Java 17 or 21 LTS recommended; Java 17+ required if using Saxon 13).
+- Saxon-HE: Version 12.10 (or 13.0).
+- xmlresolver: Version 6.0.23 (including data).
 - JAR Locations:
   - Linux: /usr/local/lib/saxon
   - Windows: C:\Program Files\Saxon
   - macOS: ~/Library/Saxon
 - Files:
-  - Saxon-HE-12.9.jar
-  - xmlresolver-6.0.6.jar
-  - xmlresolver-6.0.6-data.jar
+  - Saxon-HE-*.jar (e.g., Saxon-HE-12.10.jar or Saxon-HE-13.0.jar)
+  - xmlresolver-*.jar (e.g., xmlresolver-6.0.23.jar)
+  - xmlresolver-*-data.jar (e.g., xmlresolver-6.0.23-data.jar)
 
 ## Installation
 
