@@ -317,21 +317,21 @@ Run these test cases within **Sublime Text** on each target platform.
 
 | Test Item | Windows | macOS (Intel / ARM) | Linux (Ubuntu / Debian) | Status | Notes |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| Automated Setup Script | [x] | [ ] | [ ] | Windows Passed | Elevation check, download, and !ERRORLEVEL! fix verified |
-| Java 17+ Detection | [x] | [ ] | [ ] | Windows Passed | Java 8 backwards compatibility verified; Java 17 install prompt tested |
-| Saxon 12.10 Detection | [x] | [ ] | [ ] | Windows Passed | Successfully detected in Program Files\Saxon |
-| xmlresolver 6.0.23 Detection | [x] | [ ] | [ ] | Windows Passed | Successfully detected in Program Files\Saxon |
-| TC-01: Plugin Load | [x] | [ ] | [ ] | Windows Passed | Clean initialization in Python 3.3 runtime on ST4 build 4200 |
-| TC-02: Version Sorting | [x] | [ ] | [ ] | Windows Passed | Prioritizes 12.10 and 6.0.23 over legacy 12.9 and 6.0.6 |
-| TC-03: Missing Dependency Alert| [ ] | [ ] | [ ] | Pending | |
-| TC-04: Param File Transformation| [x] | [ ] | [ ] | Windows Passed | HTML output generated with parameter values |
-| TC-05: Manual Param Entry | [ ] | [ ] | [ ] | Pending | |
-| TC-06: No-Param Mode | [x] | [ ] | [ ] | Windows Passed | Clean transformation without parameter variables |
-| TC-07: HTML/TXT/XML Formats | [x] | [ ] | [ ] | Windows Passed | HTML and XML output method detection verified |
-| TC-08: Directory Navigation | [ ] | [ ] | [ ] | Pending | |
-| TC-09: Cancellation Flow | [ ] | [ ] | [ ] | Pending | |
-| TC-10: Error Panel Display | [ ] | [ ] | [ ] | Pending | |
-| TC-11: Localization Parity | [x] | [ ] | [ ] | Windows Passed | 100% key and placeholder parity (20/20 keys) between EN & ES |
+| Automated Setup Script | [x] | [ ] | [x] | Linux Passed | Java already present (OpenJDK 25) so install was skipped; Saxon-HE 12.10 and xmlresolver 6.0.23 (+ data jar) downloaded to /usr/local/lib/saxon at 644 perms |
+| Java 17+ Detection | [x] | [ ] | [x] | Linux Passed | Detected OpenJDK 25.0.4.1 (exceeds 17/21 target, forward-compatible) |
+| Saxon 12.10 Detection | [x] | [ ] | [x] | Linux Passed | Successfully detected in /usr/local/lib/saxon |
+| xmlresolver 6.0.23 Detection | [x] | [ ] | [x] | Linux Passed | Successfully detected in /usr/local/lib/saxon |
+| TC-01: Plugin Load | [x] | [ ] | [x] | Linux Passed | Clean initialization on ST4 build 4200 (Linux x64); Java and JAR paths logged, no tracebacks |
+| TC-02: Version Sorting | [x] | [ ] | [x] | Linux Passed | Prioritizes 12.10/6.0.23 when both versions present; correctly falls back to 12.9/6.0.6 when newer JARs removed, and an actual transformation succeeded on the legacy JARs; re-detects 12.10/6.0.23 once restored |
+| TC-03: Missing Dependency Alert| [ ] | [ ] | [x] | Linux Passed | Found & fixed 1 bug: java_missing/jars_missing dialogs in run() called get_message() with no args, silently dropping the platform-specific install command and setup script path that plugin_loaded() computed (TC-03 requires the JARs dialog show the setup script path). Wired real args through; both dialogs now show correct, informative text; both scenarios verified clean (no traceback) and fully restored after. |
+| TC-04: Param File Transformation| [x] | [ ] | [x] | Linux Passed | HTML output generated with parameter values from params.xml |
+| TC-05: Manual Param Entry | [ ] | [ ] | [x] | Linux Passed | Found & fixed 3 bugs never caught on any platform: missing enter_param_file/enter_param_value locale keys (KeyError crash), missing on_param_value_entered() method (AttributeError crash after 1st param), pretty_print_xml() misindented closing </params> tag. custom_params.xml now saves correctly and test-output.html renders entered values. |
+| TC-06: No-Param Mode | [x] | [ ] | [x] | Linux Passed | Clean transformation without parameter variables |
+| TC-07: HTML/TXT/XML Formats | [x] | [ ] | [x] | Linux Passed | HTML, TXT, and XML output method detection all verified |
+| TC-08: Directory Navigation | [ ] | [ ] | [x] | Linux Passed | subfolder/ shown and navigable; .hidden/ correctly excluded from quick panel; Parent Directory returns correctly |
+| TC-09: Cancellation Flow | [ ] | [ ] | [x] | Linux Passed | Found & fixed 1 bug: Escape at the manual param-value/filename input panels gave no status bar feedback (on_cancel was None), unlike every quick-panel cancel. All 4 cancellation points now confirmed working with status bar messages, no ghost files, no tracebacks. |
+| TC-10: Error Panel Display | [ ] | [ ] | [x] | Linux Passed | Found & fixed 1 bug: invalid XML was only validated deep inside run_transformation() (after XSL + param prompts), not immediately on Ctrl+B; moved validation earlier. Both invalid-XML and invalid-XSL cases now show clean descriptive alerts with no traceback. |
+| TC-11: Localization Parity | [x] | [ ] | [x] | Linux Passed | 100% key/placeholder parity (20/20 keys); fixed get_message() (it hardcoded lang="en", so es.sublime-messages was dead code on every platform); added "language" setting (auto/explicit code); verified live in Sublime: "auto" resolves to OS locale (en), "es" renders Spanish status messages, unsupported code ("fr") falls back to English cleanly with no traceback. NOTE: Windows/macOS TC-11 sign-off predates this fix and should be re-verified. |
 
 ---
 

@@ -7,21 +7,37 @@ import xml.etree.ElementTree as ET
 import time
 import json
 import re
+import locale as os_locale
 
 settings = sublime.load_settings("XmlTransformer.sublime-settings")
 
 def is_debug():
     return settings.get("debug", False)
 
+def get_language():
+    # Sublime Text has no API to query the UI language (verified: sublime.locale()
+    # does not exist even on ST4 build 4200), so language is either set explicitly
+    # via the "language" setting or auto-detected from the OS locale.
+    lang_setting = settings.get("language", "auto")
+    if lang_setting and str(lang_setting).lower() != "auto":
+        return str(lang_setting).replace('_', '-').split('-')[0].lower()
+    try:
+        lang_code, _ = os_locale.getdefaultlocale()
+        if lang_code:
+            return lang_code.split('_')[0].lower()
+    except Exception:
+        pass
+    return "en"
+
 def get_message(key, *args):
-    # Fallback to English for Sublime Text 3 compatibility (no sublime.locale())
-    lang = "en"  # Default to English; extend for ST4 with sublime.locale().split('-')[0]
+    lang = get_language()
     try:
         messages_path = "Packages/XmlTransformer/locale/{0}.sublime-messages".format(lang)
         messages = sublime.load_resource(messages_path)
         return json.loads(messages)[key].format(*args)
-    except:
-        # Fallback to English if lang file missing
+    except Exception:
+        # Fallback to English if the resolved language file is missing (e.g. an
+        # unsupported language code)
         messages = sublime.load_resource("Packages/XmlTransformer/locale/en.sublime-messages")
         return json.loads(messages)[key].format(*args)
 
@@ -49,6 +65,18 @@ def get_java_bin():
                 return path
         return "java"
     return "java"
+
+def get_java_install_hint():
+    system = sublime.platform()
+    is_macos = system == "osx"
+    java_install_cmd = "brew install openjdk" if is_macos else "sudo apt install default-jre" if system == "linux" else "download from adoptium.net"
+    platform_name = "macOS" if is_macos else "Linux" if system == "linux" else "Windows"
+    return java_install_cmd, platform_name
+
+def get_setup_script_name():
+    system = sublime.platform()
+    is_macos = system == "osx"
+    return "setup_XmlTransformer_macos.sh" if is_macos else "setup_XmlTransformer_ubuntu.sh" if system == "linux" else "setup_XmlTransformer_windows.bat"
 
 def get_jar_path():
     system = sublime.platform()
@@ -117,8 +145,10 @@ def plugin_loaded():
     if is_debug():
         print("DEBUG: XmlTransformer settings:", {
             "last_param_filename": settings.get("last_param_filename", "params.xml"),
-            "suppress_warnings": settings.get("suppress_warnings", True)
+            "suppress_warnings": settings.get("suppress_warnings", True),
+            "language": settings.get("language", "auto")
         })
+        print("DEBUG: Resolved language:", get_language())
     system = sublime.platform()
     is_macos = system == "osx"
     jar_path = get_jar_path()
@@ -139,8 +169,7 @@ def plugin_loaded():
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         if is_debug():
             print("DEBUG: Java not found at:", time.time(), "Error:", str(e))
-        java_install_cmd = "brew install openjdk" if is_macos else "sudo apt install default-jre" if system == "linux" else "download from adoptium.net"
-        platform_name = "macOS" if is_macos else "Linux" if system == "linux" else "Windows"
+        java_install_cmd, platform_name = get_java_install_hint()
         msg = get_message("java_missing", java_install_cmd, platform_name)
         if is_debug():
             print("DEBUG: " + msg)
@@ -150,7 +179,7 @@ def plugin_loaded():
     if not detected_jars:
         if is_debug():
             print("DEBUG: Missing JARs in", jar_path, "at:", time.time())
-        setup_cmd = "setup_XmlTransformer_macos.sh" if is_macos else "setup_XmlTransformer_ubuntu.sh" if system == "linux" else "setup_XmlTransformer_windows.bat"
+        setup_cmd = get_setup_script_name()
         msg = get_message("jars_missing", jar_path, setup_cmd)
         if is_debug():
             print("DEBUG: " + msg)
@@ -167,10 +196,12 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             print("DEBUG: XmlTransformerBuildCommand run() called at:", time.time())
             print("DEBUG: Current window ID:", self.window.id())
         if not java_available:
-            sublime.error_message(get_message("java_missing"))
+            java_install_cmd, platform_name = get_java_install_hint()
+            sublime.error_message(get_message("java_missing", java_install_cmd, platform_name))
             return
         if not jars_available:
-            sublime.error_message(get_message("jars_missing"))
+            setup_cmd = get_setup_script_name()
+            sublime.error_message(get_message("jars_missing", get_jar_path(), setup_cmd))
             return
         if is_debug():
             print("DEBUG: Before active_view at:", time.time())
@@ -187,6 +218,8 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         self.default_xsl = os.path.splitext(self.xml_path)[0] + '.xsl'
         if is_debug():
             print("DEBUG: XML file path set at:", time.time())
+        if not self.validate_xml_file(self.xml_path):
+            return
         self.show_combined_panel(self.working_dir)
 
     def show_combined_panel(self, current_dir):
@@ -292,7 +325,7 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
                 last_filename,
                 self.on_param_file_name_entered,
                 None,
-                None
+                self.on_param_input_cancelled
             )
             return
         param_name = self.params[self.current_param_index]
@@ -301,8 +334,20 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             "",
             lambda value: self.on_param_value_entered(param_name, value),
             None,
-            None
+            self.on_param_input_cancelled
         )
+
+    def on_param_input_cancelled(self):
+        if is_debug():
+            print("DEBUG: Parameter input cancelled, exiting")
+        sublime.status_message(get_message("param_choice_cancelled"))
+
+    def on_param_value_entered(self, param_name, value):
+        if is_debug():
+            print("DEBUG: Parameter value entered:", param_name, "=", value)
+        self.param_values[param_name] = value
+        self.current_param_index += 1
+        self.prompt_for_param()
 
     def on_param_file_name_entered(self, file_name):
         if is_debug():
@@ -521,12 +566,11 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         if len(elem):
             if not elem.text or not elem.text.strip():
                 elem.text = i + indent
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
             for child in elem:
                 self.pretty_print_xml(child, level + 1)
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-        else:
-            if level and (not elem.tail or not elem.tail.strip()):
-                elem.tail = i
+            # Dedent the last child's tail so the closing tag aligns with
+            # this element's own indentation instead of its children's.
+            if not elem[-1].tail or not elem[-1].tail.strip():
+                elem[-1].tail = i
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
