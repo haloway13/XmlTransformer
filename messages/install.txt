@@ -1,1 +1,57 @@
-{install_message}
+XmlTransformer Setup Instructions
+==================================
+
+Thank you for installing XmlTransformer!
+
+To use this package for XSLT transformations, you must install Java and the Saxon-HE libraries on your system. These dependencies are not bundled with the package.
+
+1. Requirements
+---------------
+- Java: Version 8 or higher (OpenJDK 11+ recommended). Ensure 'java' is in your PATH.
+- Saxon-HE: Version 12.9
+- xmlresolver: Version 6.0.6 (including data jar)
+
+Target directories for JAR files:
+- Windows: C:\Program Files\Saxon
+- Linux:   /usr/local/lib/saxon
+- macOS:   ~/Library/Saxon
+
+Required JAR files:
+- Saxon-HE-12.9.jar
+- xmlresolver-6.0.6.jar
+- xmlresolver-6.0.6-data.jar
+
+
+2. Automated Setup Scripts
+--------------------------
+Because Package Control installs packages as compressed .sublime-package archives, you can download and run the setup script for your platform:
+
+• Windows:
+  Download and run as Administrator:
+  https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_windows.bat
+
+• Linux:
+  Run in terminal:
+  curl -O https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_ubuntu.sh
+  chmod +x setup_XmlTransformer_ubuntu.sh
+  ./setup_XmlTransformer_ubuntu.sh
+
+• macOS:
+  Run in terminal:
+  curl -O https://raw.githubusercontent.com/haloway13/XmlTransformer/main/setup_XmlTransformer_macos.sh
+  chmod +x setup_XmlTransformer_macos.sh
+  ./setup_XmlTransformer_macos.sh
+
+
+3. Manual Setup (Alternative)
+-----------------------------
+Download the JARs directly from Maven Central:
+- https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/12.9/Saxon-HE-12.9.jar
+- https://repo1.maven.org/maven2/org/xmlresolver/xmlresolver/6.0.6/xmlresolver-6.0.6.jar
+- https://repo1.maven.org/maven2/org/xmlresolver/xmlresolver/6.0.6/xmlresolver-6.0.6-data.jar
+
+Place all three JARs into the designated directory for your operating system listed in section 1.
+
+
+For troubleshooting, custom parameter files, and full documentation, visit:
+https://github.com/haloway13/XmlTransformer#dependencies
