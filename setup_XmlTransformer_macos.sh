@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Versions to install
 JAVA_PACKAGE="openjdk@17"
@@ -9,9 +10,9 @@ SAXON_DIR="$HOME/Library/Saxon"
 echo "XmlTransformer Setup Script for macOS"
 echo "---------------------------------"
 echo "This script will install:"
-echo "- Java: $JAVA_PACKAGE (Java 17 or higher)"
+echo "- Java: $JAVA_PACKAGE (Java 17 or higher recommended)"
 echo "- Saxon-HE: $SAXON_VERSION"
-echo "- xmlresolver: $XMLRESOLVER_VERSION (including data)"
+echo "- xmlresolver: $XMLRESOLVER_VERSION (including data jar)"
 echo "Target directory for JARs: $SAXON_DIR"
 echo ""
 
@@ -21,7 +22,7 @@ read -p "Press Enter to continue or Ctrl+C to cancel..."
 # Check for Homebrew
 if ! command -v brew &> /dev/null; then
     echo ""
-    echo "Homebrew is required but not installed."
+    echo "Homebrew is required for automated installation but was not found."
     read -p "Install Homebrew? [Y/n]: " INSTALL_BREW
     if [[ "$INSTALL_BREW" != "n" && "$INSTALL_BREW" != "N" ]]; then
         echo "Installing Homebrew..."
@@ -50,22 +51,51 @@ configure_java_path() {
     fi
 }
 
+# Download helper with curl -fSL and file-size verification
+download_jar() {
+    local url="$1"
+    local dest="$2"
+    local name
+    name=$(basename "$dest")
+    echo -n "Downloading $name ... "
+    if curl -fSL "$url" -o "$dest" --silent --show-error; then
+        if [ ! -s "$dest" ]; then
+            echo "FAILED (0 bytes)"
+            rm -f "$dest"
+            return 1
+        fi
+        local size
+        size=$(du -h "$dest" | cut -f1)
+        echo "OK ($size)"
+        return 0
+    else
+        echo "FAILED"
+        rm -f "$dest"
+        return 1
+    fi
+}
+
 # Check and install Java
+has_java() {
+    if /usr/libexec/java_home &>/dev/null; then
+        return 0
+    elif command -v java &>/dev/null && java -version &>/dev/null; then
+        return 0
+    fi
+    return 1
+}
+
 echo ""
 echo "Checking for Java ($JAVA_PACKAGE)..."
-if command -v java &> /dev/null; then
-    JAVA_CURRENT=$(java -version 2>&1 | grep -i version | awk '{print $3}' | tr -d '"')
-    echo "Found: openjdk version $JAVA_CURRENT"
+if has_java; then
+    JAVA_CURRENT=$(java -version 2>&1 | head -n 1)
+    echo "Found: $JAVA_CURRENT"
     read -p "Java is already installed. Skip installing $JAVA_PACKAGE? [Y/n]: " INSTALL_JAVA
     if [[ "$INSTALL_JAVA" == "n" || "$INSTALL_JAVA" == "N" ]]; then
         echo "Installing $JAVA_PACKAGE..."
         brew install $JAVA_PACKAGE
-        if [ $? -ne 0 ]; then
-            echo "Failed to install Java. Please install manually with 'brew install $JAVA_PACKAGE'."
-            exit 1
-        fi
         configure_java_path
-        echo "Installed Java: $(java -version 2>&1 | grep -i version)"
+        echo "Installed Java: $(java -version 2>&1 | head -n 1)"
     else
         echo "Skipping Java installation."
     fi
@@ -76,12 +106,8 @@ else
     else
         echo "Installing $JAVA_PACKAGE..."
         brew install $JAVA_PACKAGE
-        if [ $? -ne 0 ]; then
-            echo "Failed to install Java. Please install manually with 'brew install $JAVA_PACKAGE'."
-            exit 1
-        fi
         configure_java_path
-        echo "Installed Java: $(java -version 2>&1 | grep -i version)"
+        echo "Installed Java: $(java -version 2>&1 | head -n 1)"
     fi
 fi
 
@@ -119,24 +145,31 @@ fi
 if $DO_INSTALL_JARS; then
     echo "Installing JARs to $SAXON_DIR..."
     mkdir -p "$SAXON_DIR"
-    curl -L "https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/$SAXON_VERSION/Saxon-HE-$SAXON_VERSION.jar" -o "$SAXON_DIR/Saxon-HE-$SAXON_VERSION.jar"
-    curl -L "https://repo1.maven.org/maven2/org/xmlresolver/xmlresolver/$XMLRESOLVER_VERSION/xmlresolver-$XMLRESOLVER_VERSION.jar" -o "$SAXON_DIR/xmlresolver-$XMLRESOLVER_VERSION.jar"
-    curl -L "https://repo1.maven.org/maven2/org/xmlresolver/xmlresolver/$XMLRESOLVER_VERSION/xmlresolver-$XMLRESOLVER_VERSION-data.jar" -o "$SAXON_DIR/xmlresolver-$XMLRESOLVER_VERSION-data.jar"
+
+    download_jar "https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/$SAXON_VERSION/Saxon-HE-$SAXON_VERSION.jar" "$SAXON_DIR/Saxon-HE-$SAXON_VERSION.jar" || exit 1
+    download_jar "https://repo1.maven.org/maven2/org/xmlresolver/xmlresolver/$XMLRESOLVER_VERSION/xmlresolver-$XMLRESOLVER_VERSION.jar" "$SAXON_DIR/xmlresolver-$XMLRESOLVER_VERSION.jar" || exit 1
+    download_jar "https://repo1.maven.org/maven2/org/xmlresolver/xmlresolver/$XMLRESOLVER_VERSION/xmlresolver-$XMLRESOLVER_VERSION-data.jar" "$SAXON_DIR/xmlresolver-$XMLRESOLVER_VERSION-data.jar" || exit 1
+
     chmod 644 "$SAXON_DIR"/*.jar
+    echo
     echo "Installed JARs:"
-    ls "$SAXON_DIR"/*.jar
+    ls -lh "$SAXON_DIR"/*.jar
 fi
 
 # Final validation
 echo ""
+echo "========================================================================="
 echo "Setup complete. Verifying dependencies..."
-if command -v java &> /dev/null; then
-    echo "Java: $(java -version 2>&1 | grep -i version)"
+echo "========================================================================="
+if has_java; then
+    echo "Java: $(java -version 2>&1 | head -n 1)"
 else
     echo "Java: Not found. Please install manually with 'brew install $JAVA_PACKAGE'."
 fi
+echo
 echo "JARs in $SAXON_DIR:"
-ls "$SAXON_DIR"/*.jar || echo "No JARs found. Please install manually."
+ls -lh "$SAXON_DIR"/*.jar 2>/dev/null || echo "No JARs found. Please install manually."
+echo
 echo "Run XmlTransformer by opening an XML file in Sublime Text and pressing Cmd+B."
 echo "Press any key to exit..."
 read -n 1 -s
