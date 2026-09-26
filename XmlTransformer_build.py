@@ -555,7 +555,7 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         output_file = os.path.splitext(self.xml_path)[0] + "-output" + extension
         jars = get_installed_jars(self.jar_path)
         if not jars:
-            sublime.error_message(get_message("jars_missing"))
+            sublime.error_message(get_message("jars_missing", self.jar_path, get_setup_script_name()))
             return
         saxon_jar, resolver_jar, data_jar = jars
         classpath = self.cp_separator.join([
