@@ -584,7 +584,8 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             "cmd": cmd,
             "file_regex": "^(.+?):([0-9]+):?([0-9]*):?(.*)$",
             "working_dir": self.working_dir,
-            "output_file": output_file
+            "output_file": output_file,
+            "xsl_path": self.xsl_path
         })
 
     def pretty_print_xml(self, elem, level=0):
