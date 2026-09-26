@@ -7,9 +7,9 @@ To use this package for XSLT transformations, you must install Java and the Saxo
 
 1. Requirements
 ---------------
-- Java: Version 8 or higher (OpenJDK 11+ recommended). Ensure 'java' is in your PATH.
-- Saxon-HE: Version 12.9
-- xmlresolver: Version 6.0.6 (including data jar)
+- Java: Version 8 or higher (Java 17 or 21 LTS recommended). Ensure 'java' is in your PATH.
+- Saxon-HE: Version 12.10 (or 13.0 with Java 17+)
+- xmlresolver: Version 6.0.23 (including data jar)
 
 Target directories for JAR files:
 - Windows: C:\Program Files\Saxon
@@ -17,9 +17,9 @@ Target directories for JAR files:
 - macOS:   ~/Library/Saxon
 
 Required JAR files:
-- Saxon-HE-12.9.jar
-- xmlresolver-6.0.6.jar
-- xmlresolver-6.0.6-data.jar
+- Saxon-HE-12.10.jar
+- xmlresolver-6.0.23.jar
+- xmlresolver-6.0.23-data.jar
 
 
 2. Automated Setup Scripts
@@ -46,9 +46,9 @@ Because Package Control installs packages as compressed .sublime-package archive
 3. Manual Setup (Alternative)
 -----------------------------
 Download the JARs directly from Maven Central:
-- https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/12.9/Saxon-HE-12.9.jar
-- https://repo1.maven.org/maven2/org/xmlresolver/xmlresolver/6.0.6/xmlresolver-6.0.6.jar
-- https://repo1.maven.org/maven2/org/xmlresolver/xmlresolver/6.0.6/xmlresolver-6.0.6-data.jar
+- https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/12.10/Saxon-HE-12.10.jar
+- https://repo1.maven.org/maven2/org/xmlresolver/xmlresolver/6.0.23/xmlresolver-6.0.23.jar
+- https://repo1.maven.org/maven2/org/xmlresolver/xmlresolver/6.0.23/xmlresolver-6.0.23-data.jar
 
 Place all three JARs into the designated directory for your operating system listed in section 1.
 

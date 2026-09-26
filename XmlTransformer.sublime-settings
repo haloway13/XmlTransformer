@@ -1,5 +1,6 @@
 {
     "last_param_filename": "params.xml",
     "suppress_warnings": true,
-    "debug": false
+    "debug": false,
+    "language": "auto"
 }

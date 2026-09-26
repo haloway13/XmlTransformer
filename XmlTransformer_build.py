@@ -6,23 +6,159 @@ import platform
 import xml.etree.ElementTree as ET
 import time
 import json
+import re
+import locale as os_locale
 
 settings = sublime.load_settings("XmlTransformer.sublime-settings")
 
 def is_debug():
     return settings.get("debug", False)
 
+def get_language():
+    # Sublime Text has no API to query the UI language (verified: sublime.locale()
+    # does not exist even on ST4 build 4200), so language is either set explicitly
+    # via the "language" setting or auto-detected from the OS locale.
+    lang_setting = settings.get("language", "auto")
+    if lang_setting and str(lang_setting).lower() != "auto":
+        return str(lang_setting).replace('_', '-').split('-')[0].lower()
+    try:
+        lang_code, _ = os_locale.getdefaultlocale()
+        if lang_code:
+            return lang_code.split('_')[0].lower()
+    except Exception:
+        pass
+    return "en"
+
 def get_message(key, *args):
-    # Fallback to English for Sublime Text 3 compatibility (no sublime.locale())
-    lang = "en"  # Default to English; extend for ST4 with sublime.locale().split('-')[0]
+    lang = get_language()
     try:
         messages_path = "Packages/XmlTransformer/locale/{0}.sublime-messages".format(lang)
         messages = sublime.load_resource(messages_path)
         return json.loads(messages)[key].format(*args)
-    except:
-        # Fallback to English if lang file missing
+    except Exception:
+        # Fallback to English if the resolved language file is missing (e.g. an
+        # unsupported language code)
         messages = sublime.load_resource("Packages/XmlTransformer/locale/en.sublime-messages")
         return json.loads(messages)[key].format(*args)
+
+def get_macos_java_home_bin():
+    # /usr/libexec/java_home finds JDKs installed under /Library/Java/JavaVirtualMachines
+    # (Temurin/Zulu/Oracle .pkg installs, or brew casks), which the Homebrew paths below
+    # miss. With no arguments it returns the newest installed JDK. "-v 17+" can't be used
+    # to filter: when nothing matches it silently returns the default JDK anyway, so the
+    # major version is read from the JDK's release file instead.
+    try:
+        java_home = subprocess.check_output(
+            ["/usr/libexec/java_home"], stderr=subprocess.DEVNULL, timeout=5
+        ).decode('utf-8').strip()
+        java_path = os.path.join(java_home, "bin", "java")
+        with open(os.path.join(java_home, "release")) as f:
+            match = re.search(r'^JAVA_VERSION="([^"]+)"', f.read(), re.MULTILINE)
+        if match and os.path.exists(java_path):
+            parts = match.group(1).split('.')
+            major = int(parts[1] if parts[0] == "1" else parts[0])  # "1.8.0_402" -> 8
+            if major >= 17:
+                return java_path
+            if is_debug():
+                print("DEBUG: java_home JDK is Java %d (< 17), checking Homebrew paths" % major)
+    except Exception:
+        pass
+    return None
+
+def get_java_bin():
+    system = sublime.platform()
+    if system == "osx":
+        java_home_bin = get_macos_java_home_bin()
+        if java_home_bin:
+            return java_home_bin
+        possible_java_paths = [
+            # Homebrew default / latest LTS (e.g. Java 21)
+            "/opt/homebrew/opt/openjdk/bin/java",
+            "/usr/local/opt/openjdk/bin/java",
+            # Java 21 LTS
+            "/opt/homebrew/opt/openjdk@21/bin/java",
+            "/usr/local/opt/openjdk@21/bin/java",
+            # Java 17 LTS
+            "/opt/homebrew/opt/openjdk@17/bin/java",
+            "/usr/local/opt/openjdk@17/bin/java",
+            # Java 11 LTS (legacy fallback)
+            "/opt/homebrew/opt/openjdk@11/bin/java",
+            "/usr/local/opt/openjdk@11/bin/java",
+            # macOS system wrapper
+            "/usr/bin/java"
+        ]
+        for path in possible_java_paths:
+            if os.path.exists(path):
+                return path
+        return "java"
+    return "java"
+
+def get_java_install_hint():
+    system = sublime.platform()
+    is_macos = system == "osx"
+    java_install_cmd = "brew install --cask temurin@17" if is_macos else "sudo apt install default-jre" if system == "linux" else "download from adoptium.net"
+    platform_name = "macOS" if is_macos else "Linux" if system == "linux" else "Windows"
+    return java_install_cmd, platform_name
+
+def get_setup_script_name():
+    system = sublime.platform()
+    is_macos = system == "osx"
+    return "setup_XmlTransformer_macos.sh" if is_macos else "setup_XmlTransformer_ubuntu.sh" if system == "linux" else "setup_XmlTransformer_windows.bat"
+
+def get_jar_path():
+    system = sublime.platform()
+    if system == "windows":
+        prog_files = os.environ.get("ProgramFiles", r"C:\Program Files")
+        return os.path.join(prog_files, "Saxon")
+    elif system == "osx":
+        return os.path.expanduser("~/Library/Saxon")
+    else:
+        return "/usr/local/lib/saxon"
+
+def get_installed_jars(jar_path):
+    """
+    Dynamically finds the latest Saxon-HE jar, xmlresolver jar, and xmlresolver-data jar.
+    Supports any version (e.g. 12.x, 13.x, 6.0.x) and picks the highest version found.
+    Returns (saxon_jar, resolver_jar, data_jar) or None if any required jar is missing.
+    """
+    if not os.path.isdir(jar_path):
+        return None
+    try:
+        files = os.listdir(jar_path)
+    except Exception:
+        return None
+
+    def parse_version(filename, pattern):
+        m = re.search(pattern, filename)
+        if m:
+            try:
+                return [int(x) for x in m.group(1).split(".")]
+            except ValueError:
+                return []
+        return []
+
+    # 1. Saxon-HE jar
+    saxon_candidates = [f for f in files if f.startswith("Saxon-HE-") and f.endswith(".jar")]
+    if not saxon_candidates:
+        return None
+    saxon_candidates.sort(key=lambda f: parse_version(f, r"Saxon-HE-(\d+(?:\.\d+)*)\.jar"), reverse=True)
+    saxon_jar = os.path.join(jar_path, saxon_candidates[0])
+
+    # 2. xmlresolver jar (excluding data jar)
+    resolver_candidates = [f for f in files if f.startswith("xmlresolver-") and f.endswith(".jar") and not f.endswith("-data.jar")]
+    if not resolver_candidates:
+        return None
+    resolver_candidates.sort(key=lambda f: parse_version(f, r"xmlresolver-(\d+(?:\.\d+)*)\.jar"), reverse=True)
+    resolver_jar = os.path.join(jar_path, resolver_candidates[0])
+
+    # 3. xmlresolver data jar
+    data_candidates = [f for f in files if (f.startswith("xmlresolver-") and f.endswith("-data.jar")) or (f.startswith("xmlresolver-data-") and f.endswith(".jar"))]
+    if not data_candidates:
+        return None
+    data_candidates.sort(key=lambda f: parse_version(f, r"xmlresolver-(?:data-)?(\d+(?:\.\d+)*)(?:-data)?\.jar"), reverse=True)
+    data_jar = os.path.join(jar_path, data_candidates[0])
+
+    return (saxon_jar, resolver_jar, data_jar)
 
 # Global flags for environment readiness
 java_available = True
@@ -36,33 +172,17 @@ def plugin_loaded():
     if is_debug():
         print("DEBUG: XmlTransformer settings:", {
             "last_param_filename": settings.get("last_param_filename", "params.xml"),
-            "suppress_warnings": settings.get("suppress_warnings", True)
+            "suppress_warnings": settings.get("suppress_warnings", True),
+            "language": settings.get("language", "auto")
         })
+        print("DEBUG: Resolved language:", get_language())
     system = sublime.platform()
-    is_windows = system == "windows"
     is_macos = system == "osx"
-    if is_windows:
-        jar_path = os.path.join(os.environ["ProgramFiles"], "Saxon")
-        java_bin = "java"  # Windows typically has java in PATH
-    elif is_macos:
-        jar_path = os.path.expanduser("~/Library/Saxon")
-        possible_java_paths = [
-            "/opt/homebrew/opt/openjdk@11/bin/java",  # Apple Silicon
-            "/usr/local/opt/openjdk@11/bin/java"      # Intel
-        ]
-        java_bin = None
-        for path in possible_java_paths:
-            if os.path.exists(path):
-                java_bin = path
-                break
-        if not java_bin:
-            java_bin = "java"  # Fallback to PATH
-    else:  # Linux
-        jar_path = "/usr/local/lib/saxon"
-        java_bin = "java"
+    jar_path = get_jar_path()
+    java_bin = get_java_bin()
     try:
         creation_flags = 0
-        if sublime.platform() == "windows":
+        if system == "windows":
             creation_flags = 0x08000000  # subprocess.CREATE_NO_WINDOW
         process = subprocess.Popen([java_bin, "-version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=creation_flags)
         stdout, stderr = process.communicate()
@@ -71,21 +191,22 @@ def plugin_loaded():
         global java_available
         java_available = True
         if is_debug():
-            print("DEBUG: Java found: %s" % stdout.decode('utf-8').split('\n')[0])
+            output_ver = stdout.decode('utf-8') or stderr.decode('utf-8')
+            print("DEBUG: Java found: %s (%s)" % (output_ver.split('\n')[0], java_bin))
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         if is_debug():
             print("DEBUG: Java not found at:", time.time(), "Error:", str(e))
-        java_install_cmd = "brew install openjdk@11" if is_macos else "sudo apt install openjdk-11-jre" if system == "linux" else "download from adoptium.net"
-        platform_name = "macOS" if is_macos else "Linux" if system == "linux" else "Windows"
+        java_install_cmd, platform_name = get_java_install_hint()
         msg = get_message("java_missing", java_install_cmd, platform_name)
         if is_debug():
             print("DEBUG: " + msg)
         java_available = False
-    required_jars = ["Saxon-HE-12.9.jar", "xmlresolver-6.0.6.jar", "xmlresolver-6.0.6-data.jar"]
-    if not all(os.path.exists(os.path.join(jar_path, jar)) for jar in required_jars):
+
+    detected_jars = get_installed_jars(jar_path)
+    if not detected_jars:
         if is_debug():
             print("DEBUG: Missing JARs in", jar_path, "at:", time.time())
-        setup_cmd = "setup_XmlTransformer_macos.sh" if is_macos else "setup_XmlTransformer_ubuntu.sh" if system == "linux" else "setup_XmlTransformer_windows.bat"
+        setup_cmd = get_setup_script_name()
         msg = get_message("jars_missing", jar_path, setup_cmd)
         if is_debug():
             print("DEBUG: " + msg)
@@ -93,6 +214,8 @@ def plugin_loaded():
         jars_available = False
     else:
         jars_available = True
+        if is_debug():
+            print("DEBUG: Detected JARs in", jar_path, ":", detected_jars)
 
 class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
     def run(self, **kwargs):
@@ -100,10 +223,12 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             print("DEBUG: XmlTransformerBuildCommand run() called at:", time.time())
             print("DEBUG: Current window ID:", self.window.id())
         if not java_available:
-            sublime.error_message(get_message("java_missing"))
+            java_install_cmd, platform_name = get_java_install_hint()
+            sublime.error_message(get_message("java_missing", java_install_cmd, platform_name))
             return
         if not jars_available:
-            sublime.error_message(get_message("jars_missing"))
+            setup_cmd = get_setup_script_name()
+            sublime.error_message(get_message("jars_missing", get_jar_path(), setup_cmd))
             return
         if is_debug():
             print("DEBUG: Before active_view at:", time.time())
@@ -120,6 +245,8 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         self.default_xsl = os.path.splitext(self.xml_path)[0] + '.xsl'
         if is_debug():
             print("DEBUG: XML file path set at:", time.time())
+        if not self.validate_xml_file(self.xml_path):
+            return
         self.show_combined_panel(self.working_dir)
 
     def show_combined_panel(self, current_dir):
@@ -163,22 +290,9 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         self.system = sublime.platform()
         self.is_windows = self.system == "windows"
         self.is_macos = self.system == "osx"
-        if self.is_macos:
-            possible_java_paths = [
-                "/opt/homebrew/opt/openjdk@11/bin/java",  # Apple Silicon
-                "/usr/local/opt/openjdk@11/bin/java"      # Intel
-            ]
-            self.java_bin = None
-            for path in possible_java_paths:
-                if os.path.exists(path):
-                    self.java_bin = path
-                    break
-            if not self.java_bin:
-                self.java_bin = "java"  # Fallback to PATH
-        else:
-            self.java_bin = "java"
+        self.java_bin = get_java_bin()
         self.cp_separator = ";" if self.is_windows else ":"
-        self.jar_path = os.path.join(os.environ["ProgramFiles"], "Saxon") if self.is_windows else os.path.expanduser("~/Library/Saxon") if self.is_macos else "/usr/local/lib/saxon"
+        self.jar_path = get_jar_path()
         if selected_item == "[Parent Directory]" and self.current_dir != os.path.abspath(os.path.sep):
             parent_dir = os.path.dirname(self.current_dir)
             self.show_combined_panel(parent_dir)
@@ -238,7 +352,7 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
                 last_filename,
                 self.on_param_file_name_entered,
                 None,
-                None
+                self.on_param_input_cancelled
             )
             return
         param_name = self.params[self.current_param_index]
@@ -247,8 +361,20 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             "",
             lambda value: self.on_param_value_entered(param_name, value),
             None,
-            None
+            self.on_param_input_cancelled
         )
+
+    def on_param_input_cancelled(self):
+        if is_debug():
+            print("DEBUG: Parameter input cancelled, exiting")
+        sublime.status_message(get_message("param_choice_cancelled"))
+
+    def on_param_value_entered(self, param_name, value):
+        if is_debug():
+            print("DEBUG: Parameter value entered:", param_name, "=", value)
+        self.param_values[param_name] = value
+        self.current_param_index += 1
+        self.prompt_for_param()
 
     def on_param_file_name_entered(self, file_name):
         if is_debug():
@@ -427,10 +553,18 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         output_method = self.get_xsl_output_method(self.xsl_path)
         extension = '.xml' if output_method == 'xml' else '.html' if output_method == 'html' else '.txt'
         output_file = os.path.splitext(self.xml_path)[0] + "-output" + extension
+        jars = get_installed_jars(self.jar_path)
+        if not jars:
+            sublime.error_message(get_message("jars_missing", self.jar_path, get_setup_script_name()))
+            return
+        saxon_jar, resolver_jar, data_jar = jars
+        classpath = self.cp_separator.join([
+            os.path.normpath(saxon_jar),
+            os.path.normpath(resolver_jar),
+            os.path.normpath(data_jar)
+        ])
         cmd = [
-            self.java_bin, "-cp", os.path.normpath(os.path.join(self.jar_path, "Saxon-HE-12.9.jar")) + self.cp_separator +
-                           os.path.normpath(os.path.join(self.jar_path, "xmlresolver-6.0.6.jar")) + self.cp_separator +
-                           os.path.normpath(os.path.join(self.jar_path, "xmlresolver-6.0.6-data.jar")),
+            self.java_bin, "-cp", classpath,
             "net.sf.saxon.Transform",
             "-s:" + os.path.normpath(self.xml_path),
             "-xsl:" + os.path.normpath(self.xsl_path),
@@ -450,7 +584,8 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
             "cmd": cmd,
             "file_regex": "^(.+?):([0-9]+):?([0-9]*):?(.*)$",
             "working_dir": self.working_dir,
-            "output_file": output_file
+            "output_file": output_file,
+            "xsl_path": self.xsl_path
         })
 
     def pretty_print_xml(self, elem, level=0):
@@ -459,12 +594,11 @@ class XmlTransformerBuildCommand(sublime_plugin.WindowCommand):
         if len(elem):
             if not elem.text or not elem.text.strip():
                 elem.text = i + indent
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
             for child in elem:
                 self.pretty_print_xml(child, level + 1)
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-        else:
-            if level and (not elem.tail or not elem.tail.strip()):
-                elem.tail = i
+            # Dedent the last child's tail so the closing tag aligns with
+            # this element's own indentation instead of its children's.
+            if not elem[-1].tail or not elem[-1].tail.strip():
+                elem[-1].tail = i
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
