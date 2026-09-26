@@ -2,7 +2,12 @@
 set -e
 
 # Versions to install
+# Java: the prebuilt Temurin cask is preferred because Homebrew has no openjdk@17 bottle
+# for older macOS/Intel combinations, where the formula builds from source and needs full
+# Xcode (the 'metal' tool). The formula is kept as a fallback.
+JAVA_CASK="temurin@17"
 JAVA_PACKAGE="openjdk@17"
+JAVA_MIN_VERSION=17
 SAXON_VERSION="12.10"
 XMLRESOLVER_VERSION="6.0.23"
 SAXON_DIR="$HOME/Library/Saxon"
@@ -10,7 +15,7 @@ SAXON_DIR="$HOME/Library/Saxon"
 echo "XmlTransformer Setup Script for macOS"
 echo "---------------------------------"
 echo "This script will install:"
-echo "- Java: $JAVA_PACKAGE (Java 17 or higher recommended)"
+echo "- Java: $JAVA_CASK (Java $JAVA_MIN_VERSION or higher required)"
 echo "- Saxon-HE: $SAXON_VERSION"
 echo "- xmlresolver: $XMLRESOLVER_VERSION (including data jar)"
 echo "Target directory for JARs: $SAXON_DIR"
@@ -75,39 +80,70 @@ download_jar() {
     fi
 }
 
-# Check and install Java
-has_java() {
-    if /usr/libexec/java_home &>/dev/null; then
-        return 0
-    elif command -v java &>/dev/null && java -version &>/dev/null; then
+# Print the major version of a java binary (e.g. "1.8.0_402" -> 8, "17.0.20" -> 17)
+java_major() {
+    "$1" -version 2>&1 | head -n 1 | sed -E 's/.*version "([^"]+)".*/\1/' \
+        | awk -F. '{ if ($1 == "1") print $2; else print $1 }' | sed -E 's/[^0-9].*//'
+}
+
+# Print the path of a Java >= JAVA_MIN_VERSION, checking the same locations as the plugin:
+# java_home (Temurin/Zulu/Oracle/casks), Homebrew openjdk formulae, then PATH.
+find_java() {
+    local candidate major
+    for candidate in \
+        "$(/usr/libexec/java_home 2>/dev/null)/bin/java" \
+        /opt/homebrew/opt/openjdk/bin/java /usr/local/opt/openjdk/bin/java \
+        /opt/homebrew/opt/openjdk@21/bin/java /usr/local/opt/openjdk@21/bin/java \
+        /opt/homebrew/opt/openjdk@17/bin/java /usr/local/opt/openjdk@17/bin/java \
+        "$(command -v java 2>/dev/null)"; do
+        [ -x "$candidate" ] || continue
+        major=$(java_major "$candidate")
+        if [ -n "$major" ] && [ "$major" -ge "$JAVA_MIN_VERSION" ]; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Install Java without aborting the script on failure, so the JAR step still runs
+install_java() {
+    if ! command -v brew &> /dev/null; then
+        echo "Warning: Homebrew not found. Install Java $JAVA_MIN_VERSION+ manually from https://adoptium.net."
+        return 1
+    fi
+    echo "Installing $JAVA_CASK (prebuilt, may prompt for your password)..."
+    if brew install --cask "$JAVA_CASK"; then
         return 0
     fi
+    echo "Cask install failed. Trying Homebrew formula $JAVA_PACKAGE..."
+    if brew install "$JAVA_PACKAGE"; then
+        configure_java_path
+        return 0
+    fi
+    echo "Warning: Java installation failed. Install Java $JAVA_MIN_VERSION+ manually from https://adoptium.net."
     return 1
 }
 
 echo ""
-echo "Checking for Java ($JAVA_PACKAGE)..."
-if has_java; then
-    JAVA_CURRENT=$(java -version 2>&1 | head -n 1)
-    echo "Found: $JAVA_CURRENT"
-    read -p "Java is already installed. Skip installing $JAVA_PACKAGE? [Y/n]: " INSTALL_JAVA
+echo "Checking for Java $JAVA_MIN_VERSION or higher..."
+if JAVA_FOUND=$(find_java); then
+    echo "Found: $("$JAVA_FOUND" -version 2>&1 | head -n 1) ($JAVA_FOUND)"
+    read -p "Java $JAVA_MIN_VERSION+ is already installed. Skip installing $JAVA_CASK? [Y/n]: " INSTALL_JAVA
     if [[ "$INSTALL_JAVA" == "n" || "$INSTALL_JAVA" == "N" ]]; then
-        echo "Installing $JAVA_PACKAGE..."
-        brew install $JAVA_PACKAGE
-        configure_java_path
-        echo "Installed Java: $(java -version 2>&1 | head -n 1)"
+        install_java || true
     else
         echo "Skipping Java installation."
     fi
 else
-    read -p "Install $JAVA_PACKAGE? [Y/n]: " INSTALL_JAVA
+    if command -v java &>/dev/null && java -version &>/dev/null; then
+        echo "Found: $(java -version 2>&1 | head -n 1), but Java $JAVA_MIN_VERSION or higher is required."
+    fi
+    read -p "Install $JAVA_CASK? [Y/n]: " INSTALL_JAVA
     if [[ "$INSTALL_JAVA" == "n" || "$INSTALL_JAVA" == "N" ]]; then
-        echo "Warning: Java is required for XmlTransformer. Install manually with 'brew install $JAVA_PACKAGE'."
+        echo "Warning: Java $JAVA_MIN_VERSION+ is required for XmlTransformer. Install manually with 'brew install --cask $JAVA_CASK'."
     else
-        echo "Installing $JAVA_PACKAGE..."
-        brew install $JAVA_PACKAGE
-        configure_java_path
-        echo "Installed Java: $(java -version 2>&1 | head -n 1)"
+        install_java || true
     fi
 fi
 
@@ -161,10 +197,10 @@ echo ""
 echo "========================================================================="
 echo "Setup complete. Verifying dependencies..."
 echo "========================================================================="
-if has_java; then
-    echo "Java: $(java -version 2>&1 | head -n 1)"
+if JAVA_FOUND=$(find_java); then
+    echo "Java: $("$JAVA_FOUND" -version 2>&1 | head -n 1) ($JAVA_FOUND)"
 else
-    echo "Java: Not found. Please install manually with 'brew install $JAVA_PACKAGE'."
+    echo "Java: Java $JAVA_MIN_VERSION+ not found. Please install manually with 'brew install --cask $JAVA_CASK'."
 fi
 echo
 echo "JARs in $SAXON_DIR:"

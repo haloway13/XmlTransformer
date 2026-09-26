@@ -36,7 +36,7 @@ A Sublime Text package for performing XSLT transformations on XML files using Sa
 ### Linux
 
 1. Install Dependencies:
-   Run the setup script to install Java (openjdk-11-jre), Saxon-HE 12.9, and xmlresolver 6.0.6:
+   Run the setup script to install Java (default-jre), Saxon-HE 12.10, and xmlresolver 6.0.23:
    ```
    ~/.config/sublime-text/Packages/XmlTransformer/setup_XmlTransformer_ubuntu.sh
    ```
@@ -128,15 +128,12 @@ A Sublime Text package for performing XSLT transformations on XML files using Sa
    ```
    Downloads JARs to ~/Library/Saxon.
    Alternatively, manually install:
-   - Java:
+   - Java (17 or higher):
      ```
-     brew install openjdk@17
+     brew install --cask temurin@17
      ```
-     Add to PATH (e.g., in ~/.zshrc):
-     ```
-     echo 'export PATH="$(brew --prefix openjdk@17)/bin:$PATH"' >> ~/.zshrc
-     source ~/.zshrc
-     ```
+     Any JDK 17+ installed under /Library/Java/JavaVirtualMachines (Temurin, Zulu, Oracle) is detected via `/usr/libexec/java_home`, so no PATH changes are needed.
+     The Homebrew formula (`brew install openjdk@17`) also works, but on older macOS/Intel Macs without a prebuilt bottle it builds from source and requires full Xcode.
    - JARs: Download from the URLs above.
    - Place JARs in ~/Library/Saxon:
      ```
@@ -227,7 +224,7 @@ For verification, use the included test files:
 - **Java Not Found**:
   - Linux: `sudo apt install default-jre` (or `openjdk-17-jre`)
   - Windows: Download from https://adoptium.net, ensure `java` is in PATH.
-  - macOS: `brew install openjdk` (or `openjdk@17`)
+  - macOS: `brew install --cask temurin@17` (or `brew install openjdk@17`). Verify with `/usr/libexec/java_home -V`.
   - Verify: `java -version`
 
 - **Missing JARs**:

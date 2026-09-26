@@ -41,9 +41,36 @@ def get_message(key, *args):
         messages = sublime.load_resource("Packages/XmlTransformer/locale/en.sublime-messages")
         return json.loads(messages)[key].format(*args)
 
+def get_macos_java_home_bin():
+    # /usr/libexec/java_home finds JDKs installed under /Library/Java/JavaVirtualMachines
+    # (Temurin/Zulu/Oracle .pkg installs, or brew casks), which the Homebrew paths below
+    # miss. With no arguments it returns the newest installed JDK. "-v 17+" can't be used
+    # to filter: when nothing matches it silently returns the default JDK anyway, so the
+    # major version is read from the JDK's release file instead.
+    try:
+        java_home = subprocess.check_output(
+            ["/usr/libexec/java_home"], stderr=subprocess.DEVNULL, timeout=5
+        ).decode('utf-8').strip()
+        java_path = os.path.join(java_home, "bin", "java")
+        with open(os.path.join(java_home, "release")) as f:
+            match = re.search(r'^JAVA_VERSION="([^"]+)"', f.read(), re.MULTILINE)
+        if match and os.path.exists(java_path):
+            parts = match.group(1).split('.')
+            major = int(parts[1] if parts[0] == "1" else parts[0])  # "1.8.0_402" -> 8
+            if major >= 17:
+                return java_path
+            if is_debug():
+                print("DEBUG: java_home JDK is Java %d (< 17), checking Homebrew paths" % major)
+    except Exception:
+        pass
+    return None
+
 def get_java_bin():
     system = sublime.platform()
     if system == "osx":
+        java_home_bin = get_macos_java_home_bin()
+        if java_home_bin:
+            return java_home_bin
         possible_java_paths = [
             # Homebrew default / latest LTS (e.g. Java 21)
             "/opt/homebrew/opt/openjdk/bin/java",
@@ -69,7 +96,7 @@ def get_java_bin():
 def get_java_install_hint():
     system = sublime.platform()
     is_macos = system == "osx"
-    java_install_cmd = "brew install openjdk" if is_macos else "sudo apt install default-jre" if system == "linux" else "download from adoptium.net"
+    java_install_cmd = "brew install --cask temurin@17" if is_macos else "sudo apt install default-jre" if system == "linux" else "download from adoptium.net"
     platform_name = "macOS" if is_macos else "Linux" if system == "linux" else "Windows"
     return java_install_cmd, platform_name
 
@@ -165,7 +192,7 @@ def plugin_loaded():
         java_available = True
         if is_debug():
             output_ver = stdout.decode('utf-8') or stderr.decode('utf-8')
-            print("DEBUG: Java found: %s" % output_ver.split('\n')[0])
+            print("DEBUG: Java found: %s (%s)" % (output_ver.split('\n')[0], java_bin))
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         if is_debug():
             print("DEBUG: Java not found at:", time.time(), "Error:", str(e))

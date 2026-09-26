@@ -71,12 +71,14 @@ java -cp "C:\Program Files\Saxon\Saxon-HE-12.10.jar;C:\Program Files\Saxon\xmlre
      ```
    - **Verify**:
      - Homebrew detection (prompts to install Homebrew if missing).
-     - Java detection via `/usr/libexec/java_home` and brew paths (`openjdk@17` or `openjdk`).
+     - Java 17+ detection via `/usr/libexec/java_home` and brew paths (`openjdk@17` or `openjdk`); an older Java on PATH must not count as satisfying the requirement.
+     - If Java 17+ is missing, installs the prebuilt `temurin@17` cask (falling back to the `openjdk@17` formula) and continues to the JAR step even if the Java install fails.
      - Downloads JARs to `~/Library/Saxon`.
      - Tests `curl -fSL` with file size validation.
 2. **Path Detection for Both Architectures**:
    - **Apple Silicon (M1/M2/M3)**: Java bin at `/opt/homebrew/opt/openjdk@17/bin/java` or `/opt/homebrew/bin/java`.
    - **Intel Mac**: Java bin at `/usr/local/opt/openjdk@17/bin/java` or `/usr/local/bin/java`.
+   - **Either architecture (Temurin/Zulu/Oracle .pkg or cask)**: `$(/usr/libexec/java_home)/bin/java`, e.g. `/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home/bin/java`. The plugin prefers this over brew paths when it is Java 17+.
 3. **Directory Verification**:
    ```bash
    java -version
@@ -317,17 +319,17 @@ Run these test cases within **Sublime Text** on each target platform.
 
 | Test Item | Windows | macOS (Intel / ARM) | Linux (Ubuntu / Debian) | Status | Notes |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| Automated Setup Script | [x] | [ ] | [x] | Linux Passed | Java already present (OpenJDK 25) so install was skipped; Saxon-HE 12.10 and xmlresolver 6.0.23 (+ data jar) downloaded to /usr/local/lib/saxon at 644 perms |
-| Java 17+ Detection | [x] | [ ] | [x] | Linux Passed | Detected OpenJDK 25.0.4.1 (exceeds 17/21 target, forward-compatible) |
-| Saxon 12.10 Detection | [x] | [ ] | [x] | Linux Passed | Successfully detected in /usr/local/lib/saxon |
-| xmlresolver 6.0.23 Detection | [x] | [ ] | [x] | Linux Passed | Successfully detected in /usr/local/lib/saxon |
-| TC-01: Plugin Load | [x] | [ ] | [x] | Linux Passed | Clean initialization on ST4 build 4200 (Linux x64); Java and JAR paths logged, no tracebacks |
+| Automated Setup Script | [x] | [x] | [x] | Linux & macOS Passed | Java already present (OpenJDK 25) so install was skipped; Saxon-HE 12.10 and xmlresolver 6.0.23 (+ data jar) downloaded to /usr/local/lib/saxon at 644 perms. macOS (Intel x86_64, Ventura 13.3): Found & fixed 3 bugs. (1) `brew install openjdk@17` has no bottle on this OS/CPU, so it built from source and failed on the Xcode-only `metal` tool; with `set -e` the script then exited before the JAR step. Script now installs the prebuilt `temurin@17` cask first, falls back to the formula, and continues to the JAR step if Java install fails. (2) It accepted any `java` on PATH (Java 11 here) as satisfying the 17+ requirement; now checks the major version via java_home and the brew paths. (3) Script was committed as mode 644; now 755. Saxon-HE 12.10 + xmlresolver 6.0.23 (+ data jar) downloaded to ~/Library/Saxon, zip-validated. |
+| Java 17+ Detection | [x] | [x] | [x] | Linux & macOS Passed | Detected OpenJDK 25.0.4.1 (exceeds 17/21 target, forward-compatible). macOS: Found & fixed 1 bug: get_java_bin() only checked Homebrew paths, so a leftover brew openjdk@11 beat a Temurin 17 JDK in /Library/Java/JavaVirtualMachines. Now queries /usr/libexec/java_home first (version checked via the JDK release file, since `java_home -v 17+` silently returns the default JDK when nothing matches), and falls back to the brew paths. Verified in ST4 (Python 3.3 host): Temurin 17.0.20.1 selected with openjdk@11 installed and first on PATH. |
+| Saxon 12.10 Detection | [x] | [x] | [x] | Linux & macOS Passed | Successfully detected in /usr/local/lib/saxon. macOS: detected in ~/Library/Saxon alongside 12.9 |
+| xmlresolver 6.0.23 Detection | [x] | [x] | [x] | Linux & macOS Passed | Successfully detected in /usr/local/lib/saxon. macOS: detected in ~/Library/Saxon alongside 6.0.6 |
+| TC-01: Plugin Load | [x] | [x] | [x] | Linux & macOS Passed | Clean initialization on ST4 build 4200 (Linux x64); Java and JAR paths logged, no tracebacks. macOS: clean load on ST4 build 4200 (osx x64); Temurin 17 path and 12.10/6.0.23 JARs logged, no tracebacks |
 | TC-02: Version Sorting | [x] | [ ] | [x] | Linux Passed | Prioritizes 12.10/6.0.23 when both versions present; correctly falls back to 12.9/6.0.6 when newer JARs removed, and an actual transformation succeeded on the legacy JARs; re-detects 12.10/6.0.23 once restored |
 | TC-03: Missing Dependency Alert| [ ] | [ ] | [x] | Linux Passed | Found & fixed 1 bug: java_missing/jars_missing dialogs in run() called get_message() with no args, silently dropping the platform-specific install command and setup script path that plugin_loaded() computed (TC-03 requires the JARs dialog show the setup script path). Wired real args through; both dialogs now show correct, informative text; both scenarios verified clean (no traceback) and fully restored after. |
-| TC-04: Param File Transformation| [x] | [ ] | [x] | Linux Passed | HTML output generated with parameter values from params.xml |
-| TC-05: Manual Param Entry | [ ] | [ ] | [x] | Linux Passed | Found & fixed 3 bugs never caught on any platform: missing enter_param_file/enter_param_value locale keys (KeyError crash), missing on_param_value_entered() method (AttributeError crash after 1st param), pretty_print_xml() misindented closing </params> tag. custom_params.xml now saves correctly and test-output.html renders entered values. |
-| TC-06: No-Param Mode | [x] | [ ] | [x] | Linux Passed | Clean transformation without parameter variables |
-| TC-07: HTML/TXT/XML Formats | [x] | [ ] | [x] | Linux Passed | HTML, TXT, and XML output method detection all verified |
+| TC-04: Param File Transformation| [x] | [x] | [x] | Linux & macOS Passed | HTML output generated with parameter values from params.xml. macOS: params.xml values (incl. extraParam) rendered; run on Temurin 17 |
+| TC-05: Manual Param Entry | [ ] | [x] | [x] | Linux & macOS Passed | Found & fixed 3 bugs never caught on any platform: missing enter_param_file/enter_param_value locale keys (KeyError crash), missing on_param_value_entered() method (AttributeError crash after 1st param), pretty_print_xml() misindented closing </params> tag. custom_params.xml now saves correctly and test-output.html renders entered values.. macOS: params_test_mac.xml saved with correct indentation; values rendered; filename remembered in last_param_filename |
+| TC-06: No-Param Mode | [x] | [x] | [x] | Linux & macOS Passed | Clean transformation without parameter variables. macOS: completed without prompts, empty bindings |
+| TC-07: HTML/TXT/XML Formats | [x] | [x] | [x] | Linux & macOS Passed | HTML, TXT, and XML output method detection all verified. macOS: .html/.txt/.xml each generated and opened |
 | TC-08: Directory Navigation | [ ] | [ ] | [x] | Linux Passed | subfolder/ shown and navigable; .hidden/ correctly excluded from quick panel; Parent Directory returns correctly |
 | TC-09: Cancellation Flow | [ ] | [ ] | [x] | Linux Passed | Found & fixed 1 bug: Escape at the manual param-value/filename input panels gave no status bar feedback (on_cancel was None), unlike every quick-panel cancel. All 4 cancellation points now confirmed working with status bar messages, no ghost files, no tracebacks. |
 | TC-10: Error Panel Display | [ ] | [ ] | [x] | Linux Passed | Found & fixed 1 bug: invalid XML was only validated deep inside run_transformation() (after XSL + param prompts), not immediately on Ctrl+B; moved validation earlier. Both invalid-XML and invalid-XSL cases now show clean descriptive alerts with no traceback. |
