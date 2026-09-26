@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.3.0] - 2026-09-26
 - **Fix**: `get_message()` hardcoded `lang = "en"` unconditionally, so `locale/es.sublime-messages` was never actually loaded on any platform despite the 1.2.0 "Localization" entry below — Spanish support was dead code. Sublime Text has no API to query the UI language (confirmed: `sublime.locale()` does not exist, even on ST4 build 4200), so added an explicit `"language"` setting (`"auto"` by default, falls back to the OS locale via Python's `locale` module; an explicit code like `"es"` overrides it). An unsupported/missing language code falls back to English cleanly.
 - **Fix**: `enter_param_file` and `enter_param_value` message keys were referenced by `XmlTransformer_build.py` (manual parameter entry flow) but never existed in either `locale/en.sublime-messages` or `locale/es.sublime-messages`, causing an uncaught `KeyError` crash when a user chose "Enter parameters manually" (TC-05). Added both keys to both locale files.
 - **Fix**: `on_param_value_entered()` was called as the manual-entry input panel's callback but was never defined anywhere in `XmlTransformerBuildCommand`, so entering the first parameter's value crashed with `AttributeError` instead of advancing to the next prompt. Manual parameter entry (TC-05) never worked on any platform. Implemented the missing handler.
