@@ -335,6 +335,12 @@ Run these test cases within **Sublime Text** on each target platform.
 | TC-10: Error Panel Display | [ ] | [ ] | [x] | Linux Passed | Found & fixed 1 bug: invalid XML was only validated deep inside run_transformation() (after XSL + param prompts), not immediately on Ctrl+B; moved validation earlier. Both invalid-XML and invalid-XSL cases now show clean descriptive alerts with no traceback. |
 | TC-11: Localization Parity | [x] | [x] | [x] | Linux & macOS Passed | 100% key/placeholder parity (20/20 keys); fixed get_message() (it hardcoded lang="en", so es.sublime-messages was dead code on every platform); added "language" setting (auto/explicit code); verified live in Sublime: "auto" resolves to OS locale (en), "es" renders Spanish status messages, unsupported code ("fr") falls back to English cleanly with no traceback. NOTE: Windows TC-11 sign-off predates this fix and should be re-verified.. macOS re-verified after the get_message() fix: 22/22 keys with placeholder parity, every key used in code defined (install_message and run_transformation unused). Live in ST4: "auto" resolves to en, "es" shows Spanish status-bar messages, "fr" falls back to English; no tracebacks. Minor (not fixed): quick-panel labels (Run without parameters / Enter parameters manually / Select variables XML file / [Parent Directory]) are hardcoded English; Esc at the XSL panel reuses the "Parameter choice cancelled" message. |
 
+**macOS architecture coverage:** All macOS results above were executed on **Intel (x86_64)** — i5-3210M, macOS 13.3 Ventura, Sublime Text 4 build 4200, Temurin 17.0.20.1 (brew openjdk@11 also installed). **Apple Silicon (ARM64) was not tested** (no hardware available) and is accepted as **low risk**:
+- Homebrew's `/opt/homebrew` prefix is covered by the plugin's `get_java_bin()` fallback list and the setup script's `find_java()` candidates alongside the Intel `/usr/local` paths.
+- The preferred Java install (`temurin@17` cask) ships a native arm64 build, and `/usr/libexec/java_home` + `/Library/Java/JavaVirtualMachines` detection is architecture-independent.
+- Saxon/xmlresolver JARs are pure Java; the plugin code and ST4 build are identical across architectures.
+- Only untested ARM-specific path: the `openjdk@17` formula fallback, which on Apple Silicon installs from a prebuilt bottle rather than failing to build from source as it did on Intel/Ventura.
+
 ---
 
 ## 5. Post-Release Regression Checklist
