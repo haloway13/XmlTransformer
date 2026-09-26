@@ -12,6 +12,11 @@ What's New:
 - Hardened Setup Scripts: Added administrator checks, verified downloads, and
   curl/wget fallbacks across all platforms.
 - Updated Libraries: Setup scripts now download Saxon-HE 12.10 and xmlresolver 6.0.23.
+- macOS Java Detection: JDKs installed from a package or cask (e.g. Temurin via
+  'brew install --cask temurin@17') are now detected and preferred over older
+  Homebrew Java versions.
+- Clearer Errors: Failed transformations now show the error panel instead of
+  opening output left over from a previous run.
 
 
 Existing Installations:
